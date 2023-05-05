@@ -1,0 +1,10 @@
+/compile_flags.txt
+.vscode
+*.exe
+**/.*
+!.gitignore
+!.clang-format
+build
+.build
+**.~c
+**.~h
