@@ -5,11 +5,12 @@
 #include <window.h>
 #include <keyboard.h>
 #include <mouse.h>
+#include <graphics.h>
+#include <aff3.h>
+
 
 Window window;
 Audio audio;
-
-
 
 // typedef struct Synth {
 //     Phasor phasor;
@@ -39,7 +40,14 @@ int main(void) {
         WindowClose(&window);
         return 1;
     }
+    if (GraphicsInit(&window) == false) {
+        println("Could not open Graphics");
+        AudioClose(&audio);
+        WindowClose(&window);
+    }
 
+    Aff3 aff3 = Aff3Identity();
+    Aff3Print(aff3);
     while (WindowUpdate(&window)) {
         int64 begin = WindowTime();
 
@@ -53,24 +61,23 @@ int main(void) {
         //     AudioWrite(&audio, buffer, AUDIO_BUFFER_SIZE);
         // }
 
-        if (KeyJustPressed(&window, KEY_A)) {
-            println("Key A just pressed");
+        GraphicsClear(&window);
+        GraphicsBegin(&window);
+        {
+            GraphicsAddColor(ColorHex(0xFFFF0000));
+            GraphicsAddVertex((float32[3]){0, 1, 0});
+
+            GraphicsAddColor(ColorHex(0xFF00FF00));
+            GraphicsAddVertex((float32[3]){1, -1, 0});
+
+            GraphicsAddColor(ColorHex(0xFF0000FF));
+            GraphicsAddVertex((float32[3]){-1, -1, 0});
         }
-        if (KeyJustReleased(&window, KEY_A)) {
-            println("Key A just released");
-        }
-        for (int i = 0; i < 5; i++) {
-            if (MouseJustPressed(&window, i)) {
-                println("Mouse button %d just pressed", i);
-            }
-            if (MouseJustReleased(&window, i)) {
-                println("Mouse button %d just released", i);
-            }
-        }
-        rune key = KeyGetChar(&window);
-        if (key != 0) {
-            println("Printable key %lc received", key);
-        }
+        GraphicsEnd();
+    
+        Color c = ColorHex(0xFFABCDEF);
+
+        println("Color is #%02X%02X%02X Alpha: %.3f (%02X)", c.R, c.G, c.B, ((float32)c.A / 0xFF), c.A);
 
         int64 now = WindowTime();
         if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {
@@ -78,6 +85,7 @@ int main(void) {
         }
     }
 
+    GraphicsClose(&window);
     AudioClose(&audio);
     WindowClose(&window);
 }

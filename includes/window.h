@@ -33,6 +33,8 @@ bool WindowInit(Window* window, WindowConfig config);
 
 bool WindowUpdate(Window* window);
 
+bool WindowUpdateNextFrame(Window *window, int framerate, float32 *deltaTime);
+
 void WindowClose(Window* window);
 
 int64 WindowTime();

@@ -8,3 +8,8 @@ build
 .build
 **.~c
 **.~h
+scratch.*
+notes.*
+/*.c
+/*.h
+*.d
