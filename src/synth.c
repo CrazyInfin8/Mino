@@ -1,5 +1,7 @@
-#include <synth.h>
-#include <consts.h>
+#include <math.h>
+
+#include "synth.h"
+#include "consts.h"
 
 void WaveMultiply(float32 *wave, int length, float32 scale) {
     for (int i = 0; i < length; i++) {

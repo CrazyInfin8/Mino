@@ -1,12 +1,13 @@
 #include <math.h>
-#include <utils.h>
-#include <consts.h>
-#include <audio.h>
-#include <window.h>
-#include <keyboard.h>
-#include <mouse.h>
-#include <graphics.h>
-#include <aff3.h>
+
+#include "aff3.h"
+#include "audio.h"
+#include "consts.h"
+#include "graphics.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "utils.h"
+#include "window.h"
 
 
 Window window;

@@ -1,22 +1,34 @@
 #ifndef Keyboard_H
 #define Keyboard_H
 
-#include <types.h>
+#include "types.h"
 
 typedef struct Window Window;
 
+// `Key` represents a keyboard key code. Each key code corresponds to a key on a
+// keyboard.
 typedef enum Key Key;
 
+// `KeyModifier` represents modifier keys that could change or modify the
+// behavior of other certain gestures.
 typedef enum KeyModifier KeyModifier;
 
+// `KeyPressed` returns true if the current key is pressed.
 bool KeyPressed(Window* window, Key key);
 
+// `KeyJustPressed` returns true if the specified key code has just been pressed
+// since the last call to `WindowUpdate`
 bool KeyJustPressed(Window* window, Key key);
 
+// `KeyJustReleased` returns true if the specified key code has just been
+// release since the last call to `WindowUpdate`.
 bool KeyJustReleased(Window* window, Key key);
 
-bool KeyModifierSet(Window* window, KeyModifier);
+// `KeyModifierSet` checks that the modifier is currently enabled.
+bool KeyModifierSet(Window* window, KeyModifier modifier);
 
+// `KeyGetChar` returns the character that the combinations of pressed keys
+// would produce.
 rune KeyGetChar(Window* window);
 
 enum KeyModifier {
@@ -146,6 +158,8 @@ enum Key { KEY_A,
     KEY_WIN,
     KEY_SUPER = KEY_WIN,
     KEY_COMMAND = KEY_WIN,
+    // `KEY_COUNT` is not a key code. It denotes the number of key codes
+    // available to check.
     KEY_COUNT,
 };
 

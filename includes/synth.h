@@ -1,7 +1,7 @@
 #ifndef Synth_H
 #define Synth_H
 
-#include <audio.h>
+#include "audio.h"
 
 void WaveMultiply(float32* wave, int length, float32 scale);
 

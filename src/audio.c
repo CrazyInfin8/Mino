@@ -1,10 +1,9 @@
-#include <math.h>
 #include <stdlib.h>
-#include <types.h>
-#include <utils.h>
-#include <consts.h>
 
-#include <audio.h>
+#include "audio.h"
+#include "consts.h"
+#include "types.h"
+#include "utils.h"
 
 #if PLATFORM == Windows
 

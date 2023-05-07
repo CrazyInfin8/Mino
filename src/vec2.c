@@ -1,5 +1,8 @@
-#include <vec2.h>
-#include <aff3.h>
+#include <math.h>
+
+#include "aff3.h"
+#include "types.h"
+#include "vec2.h"
 
 extern inline Vec2 Vec2TransformAff3(Vec2 this, Aff3 aff3) {
     return Aff3TransformVec2(aff3, this);

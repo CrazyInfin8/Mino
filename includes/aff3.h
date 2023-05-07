@@ -1,8 +1,8 @@
 #ifndef Aff3_H
 #define Aff3_H
 
-#include <types.h>
-#include <vec2.h>
+#include "types.h"
+#include "vec2.h"
 
 // `Aff3` implements a 3x3 affine transformation matrix where the bottom row is
 // always implicitly `[0, 0, 1]`.
@@ -37,7 +37,7 @@ Aff3 Aff3Scale(Aff3 this, float32 x, float32 y);
 
 Aff3 Aff3Translate(Aff3 this, float32 x, float32 y);
 
-// `Aff3TransformVec2` applies the matrix transformation to a `Vec2`.
+// `Aff3TransformVec2` applies the matrix's transformations to the `Vec2`.
 //
 // This applies all transformations applied to this matrix onto that `Vec2`.
 Vec2 Aff3TransformVec2(Aff3 this, Vec2 vec);
@@ -47,4 +47,4 @@ Vec2 Aff3TransformVec2(Aff3 this, Vec2 vec);
 // Note: if `NOPRINT` is defined, this may not print to the console.
 void Aff3Print(Aff3 this);
 
-#endif
+#endif  // Aff3_H

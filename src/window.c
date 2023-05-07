@@ -1,17 +1,11 @@
-#include <minwindef.h>
-#include <stdbool.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/_intsup.h>
-#include <sysinfoapi.h>
-#include <types.h>
-#include <utils.h>
 
-#include <windef.h>
-#include <window.h>
-#include <mouse.h>
-#include <keyboard.h>
-#include <graphics.h>
+#include "graphics.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "types.h"
+#include "utils.h"
+#include "window.h"
 
 #if PLATFORM == Windows
 
