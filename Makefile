@@ -3,11 +3,12 @@
 EXE_NAME:=game
 
 # --- Configureations per platform ---
+
 ifndef PLATFORM
 ifeq ($(OS),Windows_NT)
 PLATFORM:=Windows
 EXE:=$(EXE_NAME).exe
-LIBS:=-lgdi32 -lwinmm -lopengl32
+LIBS:=-lgdi32 -lwinmm -lopengl32 -lxinput
 OPTIMIZE_FLAGS:=-Wall -Wextra -MD -Os -s -fno-asynchronous-unwind-tables -fno-tree-loop-distribute-patterns -fno-stack-check -fno-stack-protector -mno-stack-arg-probe -ffunction-sections -fdata-sections -Wl,--gc-sections -falign-functions=1 -falign-loops=1 -fno-math-errno -fno-unroll-loops -fmerge-all-constants -fno-ident -mfancy-math-387 -ffast-math -Wall -unwindlib=none -mwindows -DNOPRINT # -nostdlib
 OPTIMIZED_EXE:=$(EXE_NAME).opt.exe
 COMPRESSED_EXE:=$(EXE_NAME).upx.exe

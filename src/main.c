@@ -4,6 +4,7 @@
 #include "aff3.h"
 #include "audio.h"
 #include "consts.h"
+#include "gamepad.h"
 #include "graphics.h"
 #include "keyboard.h"
 #include "mouse.h"
@@ -47,8 +48,8 @@ int main(void) {
         WindowClose(&window);
     }
 
-    Aff3 aff3 = Aff3Identity();
-    Aff3Print(aff3);
+    // Aff3 aff3 = Aff3Identity();
+    // Aff3Print(aff3);
     while (WindowUpdate(&window)) {
         int64 begin = WindowTime();
 
@@ -61,6 +62,25 @@ int main(void) {
 
         //     AudioWrite(&audio, buffer, AUDIO_BUFFER_SIZE);
         // }
+
+        Gamepad *gamepad = WindowGetFirstConnectedGamepad(&window);
+        if (gamepad && gamepad->connected) {
+            bool APressed = GamepadButtonPressed(gamepad, GAMEPAD_A);
+            bool BPressed = GamepadButtonPressed(gamepad, GAMEPAD_B);
+            bool XPressed = GamepadButtonPressed(gamepad, GAMEPAD_X);
+            bool YPressed = GamepadButtonPressed(gamepad, GAMEPAD_Y);
+            println("Gamepad connected: (Buttons: %s, %s, %s, %s), Left stick: (X: % .6f, Y: % .6f), Right stick: (X: % .6f, Y: % .6f)",
+                APressed ? "A" : " ",
+                BPressed ? "B" : " ",
+                XPressed ? "X" : " ",
+                YPressed ? "Y" : " ",
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_X),
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_Y),
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_X),
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_Y));
+        } else {
+            println("No gamepads connected");
+        }
 
         GraphicsClear(&window);
         GraphicsBegin(&window);

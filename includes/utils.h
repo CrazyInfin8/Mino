@@ -1,6 +1,8 @@
 #ifndef Utils_H
 #define Utils_H
 
+#include "types.h"
+
 #ifdef NOPRINT
 #define print(format, ...) \
     do {                   \
@@ -34,17 +36,21 @@ int printf(const char* restrict format, ...);
 // `allocate` easily allocates and initializes to zero a chunk of memory the
 // size of the specified `type`.
 #define allocate(type) (type*)calloc(1, sizeof(type))
+#define allocateN(type, count) (type*)calloc(count, sizeof(type))
 
-// `bitsSet` checks that the bit offset by `index` is set in `bits`.
-#define bitsSet(bits, index) (((bits) & (1 << (index))) == (1 << (index)))
+// `bitSet` checks that the bit offset by `index` is set in `bits`.
+bool bitSet(uint64 bits, uint8 index);
 
-// `bitsSet` checks that the bit offset by `index` is not set in `bits`.
-#define bitsUnset(bits, index) (((bits) & (1 << (index))) != (1 << (index)))
+// `bitSet` checks that the bit offset by `index` is not set in `bits`.
+bool bitUnset(uint64 bits, uint8 index);
 
 // `setBit` sets the bit offset by `index` to 1.
-#define setBit(data, index) ((data) |= 1 << (index))
+uint64 setBit(uint64 bits, uint8 index);
 
 // `setBit` sets the bit offset by `index` to 0.
-#define unsetBit(data, index) ((data) &= ~(1 << (index)))
+uint64 unsetBit(uint64 bits, uint8 index);
+
+// `clamp` constrains value to be between the `min` and `max`.
+float32 clamp(float32 value, float32 min, float32 max);
 
 #endif  // Utils_H

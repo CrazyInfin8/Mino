@@ -25,4 +25,4 @@ Vec2 Vec2TransformAff3(Vec2 this, Aff3 aff3);
 // `angle` in degrees.
 Vec2 Vec2Rotate(Vec2 this, Vec2 pivot, float32 angle);
 
-#endif
+#endif  // Vec2_H

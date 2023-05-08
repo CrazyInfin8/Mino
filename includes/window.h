@@ -1,17 +1,18 @@
 #ifndef Window_H
 #define Window_H
 
+#include "gamepad.h"
 #include "keyboard.h"
 #include "types.h"
 
 // `WindowNative` is the platforms native implementation of a window.
 //
-// It is not meant to be interacted with directly. 
+// It is not meant to be interacted with directly.
 typedef struct WindowNative WindowNative;
 
 // `WindowConfig` specifies settings used to create and initialize the window.
 typedef struct WindowConfig {
-    const char *title;
+    const char* title;
     const int width, height;
 } WindowConfig;
 
@@ -24,16 +25,23 @@ typedef struct Window {
     rune keyChar;
 
     int mouseX, mouseY;
-    int pmouseX, pmouseY;
+    int pMouseX, pMouseY;
+
+    int scrollX, scrollY;
+    int pScrollX, pScrollY;
 
     byte mousePressed;
     byte pMousePressed;
+
+    Gamepad* firstGamepad;
+    Gamepad* gamepads;
+    int gamepadCount;
 
     WindowNative* native;
 } Window;
 
 // `WindowInit` Initializes and creates a new window with the settings in
-// `config` 
+// `config`
 //
 // Remember to close finished `Window`s with `WindowClose`
 bool WindowInit(Window* window, WindowConfig config);
@@ -59,7 +67,7 @@ int64 WindowTime();
 // Instead it may run without delay which can be unnecessarily taxing on your
 // computer's resources. Finding the correct amount of time to sleep and calling
 // this function can help prevent the computer from doing extra unnecessary
-// work by sleeping. 
+// work by sleeping.
 void WindowSleep(int64 milliseconds);
 
 #endif  // Window_H

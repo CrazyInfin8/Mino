@@ -1,3 +1,4 @@
+#include "gamepad.h"
 #include "graphics.h"
 #include "keyboard.h"
 #include "mouse.h"
@@ -15,15 +16,17 @@ extern inline Color ColorHex(const uint32 color) {
 }
 
 bool MousePressed(Window *window, MouseButton button) {
-    return bitsSet(window->mousePressed, button);
+    return bitSet(window->mousePressed, button);
 }
 
 bool MouseJustPressed(Window *window, MouseButton button) {
-    return bitsSet(window->mousePressed, button) && bitsSet(window->mousePressed, button) != bitsSet(window->pMousePressed, button);
+    bool pressed = bitSet(window->mousePressed, button);
+    return pressed && pressed != bitSet(window->pMousePressed, button);
 }
 
 bool MouseJustReleased(Window *window, MouseButton button) {
-    return bitsUnset(window->mousePressed, button) && bitsSet(window->mousePressed, button) != bitsSet(window->pMousePressed, button);
+    bool released = bitUnset(window->mousePressed, button);
+    return released && released != bitUnset(window->pMousePressed, button);
 }
 
 bool KeyPressed(Window *window, Key key) {
@@ -44,4 +47,13 @@ bool KeyModifierSet(Window *window, KeyModifier modifier) {
 
 rune KeyGetChar(Window *window) {
     return window->keyChar;
+}
+
+Gamepad *WindowGetGamepad(Window *window, int playerID) {
+    if (playerID < 0 || playerID > window->gamepadCount) return nil;
+    return &window->gamepads[playerID];
+}
+
+extern inline Gamepad *WindowGetFirstConnectedGamepad(Window *window) {
+    return window->firstGamepad;
 }
