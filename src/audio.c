@@ -90,7 +90,7 @@ void AudioWrite(Audio *audio, float *wave, int length) {
 
     for (int i = 0; i < AUDIO_BUFFER_COUNT; i++) {
         if (audio->native->headers[i].dwFlags & WHDR_DONE) {
-            for (unsigned j = 0; j < length; j++) {
+            for (int j = 0; j < length; j++) {
                 audio->native->buffers[i][j] = (int16)(wave[j] * 0x7FFF);
             }
 

@@ -79,6 +79,9 @@ Vec2 Aff3TransformVec2(Aff3 this, Vec2 vec) {
     };
 }
 
+#ifdef NOPRINT
+extern inline void Aff3Print(Aff3) {}
+#else
 void Aff3Print(Aff3 this) {
     println(
         "Matrix {\n\tA: %.6f, B: %.6f, TX: %.6f,\n\tC: %.6f, D: %.6f, TY: %.6f,\n}",
@@ -89,3 +92,4 @@ void Aff3Print(Aff3 this) {
         this.D,
         this.TY);
 }
+#endif

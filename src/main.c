@@ -1,4 +1,5 @@
 #include <math.h>
+#include <processthreadsapi.h>
 
 #include "aff3.h"
 #include "audio.h"
@@ -8,7 +9,6 @@
 #include "mouse.h"
 #include "utils.h"
 #include "window.h"
-
 
 Window window;
 Audio audio;
@@ -75,10 +75,6 @@ int main(void) {
             GraphicsAddVertex((float32[3]){-1, -1, 0});
         }
         GraphicsEnd();
-    
-        Color c = ColorHex(0xFFABCDEF);
-
-        println("Color is #%02X%02X%02X Alpha: %.3f (%02X)", c.R, c.G, c.B, ((float32)c.A / 0xFF), c.A);
 
         int64 now = WindowTime();
         if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {
@@ -89,4 +85,5 @@ int main(void) {
     GraphicsClose(&window);
     AudioClose(&audio);
     WindowClose(&window);
+    return 0;
 }
