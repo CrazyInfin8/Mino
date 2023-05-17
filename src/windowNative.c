@@ -1,6 +1,18 @@
-#include <minwindef.h>
 #include <stdlib.h>
-#include <winerror.h>
+#include <wchar.h>
+
+// X11 also defines a `Window` type that conflicts with Mino. This hack
+// basically renames Mino's `Window` typedef to MinoWindow only for the linux
+// platform so that windowNative can compile without issue and we can maintain
+// intuitive names without prefixes.
+//
+// I suppose you can't include both X11 and Mino's `<window.h>` in your source
+// code without this hack. But Mino's goal is to make it so that you don't need
+// to do that. Mino aims to provide everything you needing to make your game
+// without any of the platform specific code or headers.
+#if defined(PLATFORM_Linux)
+#define Window MinoWindow
+#endif
 
 #include "graphics.h"
 #include "keyboard.h"
@@ -9,7 +21,30 @@
 #include "utils.h"
 #include "window.h"
 
-#if PLATFORM == Windows
+static void resetInputState(Window *window) {
+    for (int i = 0; i < KEY_COUNT; i++) {
+        window->pKeyPressed[i] = window->keyPressed[i];
+    }
+    window->pMouseX = window->mouseX;
+    window->pMouseY = window->mouseY;
+    window->pMousePressed = window->mousePressed;
+    window->keyChar = 0;
+    window->pScrollX = window->scrollX;
+    window->pScrollY = window->scrollY;
+    window->scrollX = 0;
+    window->scrollY = 0;
+    Gamepad *gamepad;
+    for (int i = 0; i < window->gamepadCount; i++) {
+        gamepad = &window->gamepads[i];
+        gamepad->pButtons = gamepad->buttons;
+        gamepad->buttons = 0;
+        for (int j = 0; j < GAMEPAD_AXIS_COUNT; j++) {
+            gamepad->pAxes[j] = gamepad->axes[j];
+        }
+    }
+}
+
+#if defined(PLATFORM_Windows)
 
 #include <windows.h>
 #include <winuser.h>
@@ -160,29 +195,6 @@ bool WindowInit(Window *window, WindowConfig config) {
     UpdateWindow(native->windowHandle);
 
     return true;
-}
-
-static void resetInputState(Window *window) {
-    for (int i = 0; i < KEY_COUNT; i++) {
-        window->pKeyPressed[i] = window->keyPressed[i];
-    }
-    window->pMouseX = window->mouseX;
-    window->pMouseY = window->mouseY;
-    window->pMousePressed = window->mousePressed;
-    window->keyChar = 0;
-    window->pScrollX = window->scrollX;
-    window->pScrollY = window->scrollY;
-    window->scrollX = 0;
-    window->scrollY = 0;
-    Gamepad *gamepad;
-    for (int i = 0; i < 4; i++) {
-        gamepad = &window->gamepads[i];
-        gamepad->pButtons = gamepad->buttons;
-        gamepad->buttons = 0;
-        for (int j = 0; j < GAMEPAD_AXIS_COUNT; j++) {
-            gamepad->pAxes[j] = gamepad->axes[j];
-        }
-    }
 }
 
 const int MinoGamepadButton2XinputButton[] = {[GAMEPAD_UP] = XINPUT_GAMEPAD_DPAD_UP, [GAMEPAD_DOWN] = XINPUT_GAMEPAD_DPAD_DOWN, [GAMEPAD_LEFT] = XINPUT_GAMEPAD_DPAD_LEFT, [GAMEPAD_RIGHT] = XINPUT_GAMEPAD_DPAD_RIGHT, [GAMEPAD_A] = XINPUT_GAMEPAD_A, [GAMEPAD_B] = XINPUT_GAMEPAD_B, [GAMEPAD_X] = XINPUT_GAMEPAD_X, [GAMEPAD_Y] = XINPUT_GAMEPAD_Y, [GAMEPAD_L1] = XINPUT_GAMEPAD_LEFT_SHOULDER, [GAMEPAD_L3] = XINPUT_GAMEPAD_LEFT_THUMB, [GAMEPAD_R1] = XINPUT_GAMEPAD_RIGHT_SHOULDER, [GAMEPAD_R3] = XINPUT_GAMEPAD_RIGHT_THUMB, [GAMEPAD_START] = XINPUT_GAMEPAD_START, [GAMEPAD_SELECT] = XINPUT_GAMEPAD_BACK};
@@ -364,6 +376,314 @@ void GraphicsAddColor(Color color) {
     glColor4ub(color.R, color.G, color.B, color.A);
 }
 
-#elif PLATFORM == Linux
+#elif defined(PLATFORM_Linux)
+
+// Gotta clean this up so X11 can work. Now `MinoWindow` is the Window for Mino
+// and `Window` is for X11's window ID.
+#undef Window
+#include <X11/XKBlib.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/keysym.h>
+
+struct WindowNative {
+    Display* xDisplay;
+    Window xWindow;
+    Atom deleteWindow;
+};
+
+bool WindowInit(MinoWindow* window, WindowConfig config) {
+    Display* xDisplay = XOpenDisplay(nil);
+    if (xDisplay == nil) {
+        return false;
+    }
+
+    int screenID = DefaultScreen(xDisplay);
+
+    Window xWindow = XCreateSimpleWindow(
+        xDisplay,
+        RootWindow(xDisplay, screenID),
+        10, 10, config.width, config.height, 1,
+        BlackPixel(xDisplay, screenID),
+        WhitePixel(xDisplay, screenID));
+
+    Atom deleteWindowAtom = XInternAtom(xDisplay, "WM_DELETE_WINDOW", false);
+    XSetWMProtocols(xDisplay, xWindow, &deleteWindowAtom, 1);
+
+    XSelectInput(xDisplay, xWindow, ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
+
+    XMapWindow(xDisplay, xWindow);
+    XSync(xDisplay, xWindow);
+
+    window->native = allocate(WindowNative);
+    *window->native = (WindowNative){
+        .xDisplay = xDisplay,
+        .xWindow = xWindow,
+        .deleteWindow = deleteWindowAtom,
+    };
+
+    return true;
+}
+
+Key XKey2MinoKey(int key) {
+    switch (key) {
+        case XK_a: return KEY_A;
+        case XK_b: return KEY_B;
+        case XK_c: return KEY_C;
+        case XK_d: return KEY_D;
+        case XK_e: return KEY_E;
+        case XK_f: return KEY_F;
+        case XK_g: return KEY_G;
+        case XK_h: return KEY_H;
+        case XK_i: return KEY_I;
+        case XK_j: return KEY_J;
+        case XK_k: return KEY_K;
+        case XK_l: return KEY_L;
+        case XK_m: return KEY_M;
+        case XK_n: return KEY_N;
+        case XK_o: return KEY_O;
+        case XK_p: return KEY_P;
+        case XK_q: return KEY_Q;
+        case XK_r: return KEY_R;
+        case XK_s: return KEY_S;
+        case XK_t: return KEY_T;
+        case XK_u: return KEY_U;
+        case XK_v: return KEY_V;
+        case XK_w: return KEY_W;
+        case XK_x: return KEY_X;
+        case XK_y: return KEY_Y;
+        case XK_z: return KEY_Z;
+        case XK_Alt_L: return KEY_LEFT_ALT;
+        case XK_Alt_R: return KEY_RIGHT_ALT;
+        case XK_Down: return KEY_DOWN_ARROW;
+        case XK_Left: return KEY_LEFT_ARROW;
+        case XK_Right: return KEY_RIGHT_ARROW;
+        case XK_Up: return KEY_UP_ARROW;
+        case XK_grave: return KEY_TILDE;
+        case XK_backslash: return KEY_BACKSLASH;
+        case XK_BackSpace: return KEY_BACKSPACE;
+        case XK_bracketleft: return KEY_LEFT_BRACKET;
+        case XK_bracketright: return KEY_RIGHT_BRACKET;
+        case XK_Caps_Lock: return KEY_CAPS_LOCK;
+        case XK_comma: return KEY_COMMA;
+        case XK_Menu: return KEY_CONTEXT_MENU;
+        case XK_Control_L: return KEY_LEFT_CONTROL;
+        case XK_Control_R: return KEY_RIGHT_CONTROL;
+        case XK_Delete: return KEY_DELETE;
+        case XK_0: return KEY_0;
+        case XK_1: return KEY_1;
+        case XK_2: return KEY_2;
+        case XK_3: return KEY_3;
+        case XK_4: return KEY_4;
+        case XK_5: return KEY_5;
+        case XK_6: return KEY_6;
+        case XK_7: return KEY_7;
+        case XK_8: return KEY_8;
+        case XK_9: return KEY_9;
+        case XK_End: return KEY_END;
+        case XK_Return: return KEY_ENTER;
+        case XK_equal: return KEY_EQUAL;
+        case XK_Escape: return KEY_ESCAPE;
+        case XK_F1: return KEY_F1;
+        case XK_F2: return KEY_F2;
+        case XK_F3: return KEY_F3;
+        case XK_F4: return KEY_F4;
+        case XK_F5: return KEY_F5;
+        case XK_F6: return KEY_F6;
+        case XK_F7: return KEY_F7;
+        case XK_F8: return KEY_F8;
+        case XK_F9: return KEY_F9;
+        case XK_F10: return KEY_F10;
+        case XK_F11: return KEY_F11;
+        case XK_F12: return KEY_F12;
+        case XK_Home: return KEY_HOME;
+        case XK_Insert: return KEY_INSERT;
+        case XK_Super_L: return KEY_LEFT_WIN;
+        case XK_Super_R: return KEY_RIGHT_WIN;
+        case XK_minus: return KEY_MINUS;
+        case XK_Num_Lock: return KEY_NUMLOCK;
+        case XK_KP_Insert: return KEY_NP_0;
+        case XK_KP_End: return KEY_NP_1;
+        case XK_KP_Down: return KEY_NP_2;
+        case XK_KP_Page_Down: return KEY_NP_3;
+        case XK_KP_Left: return KEY_NP_4;
+        case XK_KP_Begin: return KEY_NP_5;
+        case XK_KP_Right: return KEY_NP_6;
+        case XK_KP_Home: return KEY_NP_7;
+        case XK_KP_Up: return KEY_NP_8;
+        case XK_KP_Page_Up: return KEY_NP_9;
+        case XK_KP_Add: return KEY_NP_ADD;
+        case XK_KP_Delete: return KEY_NP_DECIMAL;
+        case XK_KP_Divide: return KEY_NP_DIVIDE;
+        case XK_KP_Enter: return KEY_NP_ENTER;
+        case XK_KP_Equal: return KEY_NP_EQUAL;
+        case XK_KP_Multiply: return KEY_NP_MULTIPLY;
+        case XK_KP_Subtract: return KEY_NP_SUBTRACT;
+        case XK_Page_Down: return KEY_PAGE_DOWN;
+        case XK_Page_Up: return KEY_PAGE_UP;
+        case XK_Pause: return KEY_PAUSE;
+        case XK_period: return KEY_PERIOD;
+        case XK_Print: return KEY_PRINT_SCREEN;
+        case XK_apostrophe: return KEY_QUOTE;
+        case XK_Scroll_Lock: return KEY_SCROLL_LOCK;
+        case XK_semicolon: return KEY_SEMICOLON;
+        case XK_Shift_L: return KEY_LEFT_SHIFT;
+        case XK_Shift_R: return KEY_RIGHT_SHIFT;
+        case XK_slash: return KEY_SLASH;
+        case XK_space: return KEY_SPACE;
+        case XK_Tab: return KEY_TAB;
+    }
+    println("Unhandled keycode: 0x%04X", key);
+    return KEY_INVALID;
+};
+
+bool WindowUpdate(MinoWindow* window) {
+    XEvent event;
+    WindowNative* native = window->native;
+
+    resetInputState(window);
+
+    while (XPending(native->xDisplay)) {
+        XNextEvent(native->xDisplay, &event);
+        switch (event.type) {
+            case MotionNotify: {
+                window->mouseX = event.xmotion.x;
+                window->mouseY = event.xmotion.y;
+            } break;
+
+
+            case ButtonPress: {
+                switch (event.xbutton.button) {
+                    case 1:
+                        window->mousePressed = setBit(window->mousePressed, MOUSE_LEFT);
+                        break;
+                    case 2:
+                        window->mousePressed = setBit(window->mousePressed, MOUSE_MIDDLE);
+                        break;
+                    case 3:
+                        window->mousePressed = setBit(window->mousePressed, MOUSE_RIGHT);
+                        break;
+                    case 4:
+                        window->scrollY++;
+                        break;
+                    case 5:
+                        window->scrollY--;
+                        break;
+                    case 6:
+                        window->scrollX--;
+                        break;
+                    case 7:
+                        window->scrollX++;
+                        break;
+                    case 8:
+                        window->mousePressed = setBit(window->mousePressed, MOUSE_BACK);
+                        break;
+                    case 9:
+                        window->mousePressed = setBit(window->mousePressed, MOUSE_FORWARD);
+                        break;
+                }
+                break;
+            }
+
+            case ButtonRelease: {
+                switch (event.xbutton.button) {
+                    case 1:
+                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_LEFT);
+                        break;
+                    case 2:
+                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_MIDDLE);
+                        break;
+                    case 3:
+                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_RIGHT);
+                        break;
+                    case 8:
+                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_BACK);
+                        break;
+                    case 9:
+                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_FORWARD);
+                        break;
+                }
+            } break;
+
+            case KeyPress:
+            case KeyRelease: {
+                KeySym keySymbol = XkbKeycodeToKeysym(native->xDisplay, event.xkey.keycode, 0, 0);
+                Key key = XKey2MinoKey(keySymbol);
+                if (key == KEY_INVALID) {
+                    println("Unhandled keycode: %d", key);
+                    break;
+                }
+                window->keyPressed[key] = event.type == KeyPress;
+
+                if (key == KEY_LEFT_CONTROL || key == KEY_RIGHT_CONTROL)
+                    window->keyPressed[KEY_CONTROL] = (window->keyPressed[KEY_LEFT_CONTROL] || window->keyPressed[KEY_RIGHT_CONTROL]);
+                else if (key == KEY_LEFT_SHIFT || key == KEY_RIGHT_SHIFT)
+                    window->keyPressed[KEY_SHIFT] = (window->keyPressed[KEY_LEFT_SHIFT] || window->keyPressed[KEY_RIGHT_SHIFT]);
+                else if (key == KEY_LEFT_WIN || key == KEY_RIGHT_WIN)
+                    window->keyPressed[KEY_WIN] = (window->keyPressed[KEY_LEFT_WIN] || window->keyPressed[KEY_RIGHT_WIN]);
+                else if (key == KEY_LEFT_ALT || key == KEY_RIGHT_ALT)
+                    window->keyPressed[KEY_ALT] = (window->keyPressed[KEY_LEFT_ALT] || window->keyPressed[KEY_RIGHT_ALT]);
+
+                window->keyModifier =
+                    (window->keyPressed[KEY_WIN] ? MOD_WIN : 0) |
+                    (window->keyPressed[KEY_ALT] ? MOD_ALT : 0) |
+                    (window->keyPressed[KEY_SHIFT] ? MOD_SHIFT : 0) |
+                    (window->keyPressed[KEY_CONTROL] ? MOD_CONTROL : 0) |
+                    (bitSet(event.xkey.state, LockMapIndex) ? MOD_CAPS_LOCK : 0) |
+                    (bitSet(event.xkey.state, Mod2MapIndex) ? MOD_NUM_LOCK : 0) |
+                    (bitSet(event.xkey.state, Mod5MapIndex) ? MOD_SCROLL_LOCK : 0);
+
+                if (event.type == KeyPress) {
+                    char buffer[2];
+                    if (XLookupString(&event.xkey, buffer, sizeof(buffer), &keySymbol, NULL) > 0) {
+                        mbstowcs(&window->keyChar, buffer, sizeof(window->keyChar));
+                    };
+                }
+            } break;
+
+            case ClientMessage: {
+                if (event.xclient.data.l[0] == (long)native->deleteWindow) {
+                    return false;
+                }
+            } break;
+        }
+    }
+    return true;
+}
+
+void WindowClose(MinoWindow* window) {
+    XDestroyWindow(window->native->xDisplay, window->native->xWindow);
+    XCloseDisplay(window->native->xDisplay);
+    free(window->native);
+}
+
+/*
+FENSTER_API void fenster_sleep(int64_t ms) {
+  struct timespec ts;
+  ts.tv_sec = ms / 1000;
+  ts.tv_nsec = (ms % 1000) * 1000000;
+  nanosleep(&ts, NULL);
+}
+FENSTER_API int64_t fenster_time() {
+  struct timespec time;
+  clock_gettime(CLOCK_REALTIME, &time);
+  return time.tv_sec * 1000 + (time.tv_nsec / 1000000);
+}
+*/
+
+#include <time.h>
+
+int64 WindowTime() {
+    struct timespec time;
+    clock_gettime(CLOCK_REALTIME, &time);
+    return time.tv_sec * 1000 + (time.tv_nsec / 1000000);
+}
+
+void WindowSleep(int64 milliseconds) {
+    struct timespec time;
+    time.tv_sec = milliseconds / 1000;
+    time.tv_nsec = (milliseconds % 1000) * 1000000;
+    nanosleep(&time, nil);
+}
 
 #endif

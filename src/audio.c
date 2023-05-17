@@ -5,7 +5,7 @@
 #include "types.h"
 #include "utils.h"
 
-#if PLATFORM == Windows
+#if defined(PLATFORM_Windows)
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -109,6 +109,6 @@ void AudioClose(Audio *audio) {
     audio->native = nil;
 }
 
-#elif PLATFORM == Linux
+#elif defined(PLATFORM_Linux)
 
 #endif

@@ -28,7 +28,7 @@ typedef struct GamepadNative GamepadNative;
 // platforms as the system may use them to exit the program to the systems home
 // menu (For example on consoles like XBox, PlayStation, but the Windows XInput
 // API also doesn't allow access to this button).
-typedef enum GamepadButton {
+typedef enum PACK_ENUM GamepadButton {
     GAMEPAD_UP,
     GAMEPAD_DOWN,
     GAMEPAD_LEFT,
@@ -77,7 +77,7 @@ typedef enum GamepadButton {
 //
 // A standard gamepad often has 2 joysticks (which each have 2 directions) and 2
 // analog triggers.
-typedef enum GamepadAxis {
+typedef enum PACK_ENUM GamepadAxis {
     GAMEPAD_AXIS_LEFT_STICK_X,
     GAMEPAD_AXIS_LEFT_STICK_Y,
     GAMEPAD_AXIS_RIGHT_STICK_X,

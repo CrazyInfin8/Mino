@@ -7,7 +7,7 @@ bool bitSet(uint64 bits, uint8 index) {
 
 bool bitUnset(uint64 bits, uint8 index) {
     uint64 mask = 1 << (uint64)index;
-    return (bits * mask) != mask;
+    return (bits & mask) != mask;
 }
 
 uint64 setBit(uint64 bits, uint8 index) {

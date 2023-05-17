@@ -1,5 +1,4 @@
 #include <math.h>
-#include <processthreadsapi.h>
 
 #include "aff3.h"
 #include "audio.h"
@@ -37,16 +36,16 @@ int main(void) {
         println("Could not open the window");
         return 1;
     }
-    if (AudioInit(&audio) == false) {
-        println("Could not open Audio");
-        WindowClose(&window);
-        return 1;
-    }
-    if (GraphicsInit(&window) == false) {
-        println("Could not open Graphics");
-        AudioClose(&audio);
-        WindowClose(&window);
-    }
+    // if (AudioInit(&audio) == false) {
+    //     println("Could not open Audio");
+    //     WindowClose(&window);
+    //     return 1;
+    // }
+    // if (GraphicsInit(&window) == false) {
+    //     println("Could not open Graphics");
+    //     AudioClose(&audio);
+    //     WindowClose(&window);
+    // }
 
     // Aff3 aff3 = Aff3Identity();
     // Aff3Print(aff3);
@@ -63,38 +62,65 @@ int main(void) {
         //     AudioWrite(&audio, buffer, AUDIO_BUFFER_SIZE);
         // }
 
-        Gamepad *gamepad = WindowGetFirstConnectedGamepad(&window);
-        if (gamepad && gamepad->connected) {
-            bool APressed = GamepadButtonPressed(gamepad, GAMEPAD_A);
-            bool BPressed = GamepadButtonPressed(gamepad, GAMEPAD_B);
-            bool XPressed = GamepadButtonPressed(gamepad, GAMEPAD_X);
-            bool YPressed = GamepadButtonPressed(gamepad, GAMEPAD_Y);
-            println("Gamepad connected: (Buttons: %s, %s, %s, %s), Left stick: (X: % .6f, Y: % .6f), Right stick: (X: % .6f, Y: % .6f)",
-                APressed ? "A" : " ",
-                BPressed ? "B" : " ",
-                XPressed ? "X" : " ",
-                YPressed ? "Y" : " ",
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_X),
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_Y),
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_X),
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_Y));
-        } else {
-            println("No gamepads connected");
+        if (MouseJustPressed(&window, MOUSE_LEFT)) println("Left just pressed");
+        if (MouseJustPressed(&window, MOUSE_RIGHT)) println("Right just pressed");
+        if (MouseJustPressed(&window, MOUSE_MIDDLE)) println("Middle just pressed");
+        if (MouseJustPressed(&window, MOUSE_FORWARD)) println("Forward just pressed");
+        if (MouseJustPressed(&window, MOUSE_BACK)) println("Back just pressed");
+
+        if (MouseJustReleased(&window, MOUSE_LEFT)) println("Left just released");
+        if (MouseJustReleased(&window, MOUSE_RIGHT)) println("Right just released");
+        if (MouseJustReleased(&window, MOUSE_MIDDLE)) println("Middle just released");
+        if (MouseJustReleased(&window, MOUSE_FORWARD)) println("Forward just released");
+        if (MouseJustReleased(&window, MOUSE_BACK)) println("Back just released");
+
+        if (window.scrollX != 0 || window.scrollY != 0) println("Scroll = { X: %d, Y: %d }", window.scrollX, window.scrollY);
+
+        for (int i = 0; i < KEY_COUNT; i++) {
+            if (KeyJustPressed(&window, i)) {
+                println("Key %d just pressed", i);
+            }
+            if (KeyJustReleased(&window, i)) {
+                println("Key %d just released", i);
+            }
         }
+        rune c = KeyGetChar(&window);
+        if (c) println("You typed: %c", c);
 
-        GraphicsClear(&window);
-        GraphicsBegin(&window);
-        {
-            GraphicsAddColor(ColorHex(0xFFFF0000));
-            GraphicsAddVertex((float32[3]){0, 1, 0});
+        print("Mouse: { X: %d, Y: %d }\r", window.mouseX, window.mouseY);
 
-            GraphicsAddColor(ColorHex(0xFF00FF00));
-            GraphicsAddVertex((float32[3]){1, -1, 0});
+        // Gamepad *gamepad = WindowGetFirstConnectedGamepad(&window);
+        // if (gamepad && gamepad->connected) {
+        //     bool APressed = GamepadButtonPressed(gamepad, GAMEPAD_A);
+        //     bool BPressed = GamepadButtonPressed(gamepad, GAMEPAD_B);
+        //     bool XPressed = GamepadButtonPressed(gamepad, GAMEPAD_X);
+        //     bool YPressed = GamepadButtonPressed(gamepad, GAMEPAD_Y);
+        //     println("Gamepad connected: (Buttons: %s, %s, %s, %s), Left stick: (X: % .6f, Y: % .6f), Right stick: (X: % .6f, Y: % .6f)",
+        //         APressed ? "A" : " ",
+        //         BPressed ? "B" : " ",
+        //         XPressed ? "X" : " ",
+        //         YPressed ? "Y" : " ",
+        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_X),
+        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_Y),
+        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_X),
+        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_Y));
+        // } else {
+        //     println("No gamepads connected");
+        // }
 
-            GraphicsAddColor(ColorHex(0xFF0000FF));
-            GraphicsAddVertex((float32[3]){-1, -1, 0});
-        }
-        GraphicsEnd();
+        // GraphicsClear(&window);
+        // GraphicsBegin(&window);
+        // {
+        //     GraphicsAddColor(ColorHex(0xFFFF0000));
+        //     GraphicsAddVertex((float32[3]){0, 1, 0});
+
+        //     GraphicsAddColor(ColorHex(0xFF00FF00));
+        //     GraphicsAddVertex((float32[3]){1, -1, 0});
+
+        //     GraphicsAddColor(ColorHex(0xFF0000FF));
+        //     GraphicsAddVertex((float32[3]){-1, -1, 0});
+        // }
+        // GraphicsEnd();
 
         int64 now = WindowTime();
         if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {
@@ -102,8 +128,8 @@ int main(void) {
         }
     }
 
-    GraphicsClose(&window);
-    AudioClose(&audio);
+    // GraphicsClose(&window);
+    // AudioClose(&audio);
     WindowClose(&window);
     return 0;
 }
