@@ -19,7 +19,7 @@ OPTIMIZE_FLAGS:=-MD -Os -s -fno-asynchronous-unwind-tables -fno-tree-loop-distri
 OPTIMIZED_EXE:=$(EXE_NAME).opt
 COMPRESSED_EXE:=$(EXE_NAME).upx
 ifeq ($(UNAME),Linux)
-LIBS=-lX11 -lm #-lasound
+LIBS=-lX11 -lm -ludev#-lasound
 PLATFORM:=PLATFORM_Linux
 endif # UNAME == Linux
 endif # OS != Windows_NT
@@ -31,7 +31,7 @@ build: $(EXE) .PHONY
 
 
 $(EXE): src/*.c includes/*.h
-	$(CC) src/*.c $(LIBS) -D$(PLATFORM) -Wall -Wextra -Iincludes -o $@
+	$(CC) src/*.c $(LIBS) -D$(PLATFORM) -Wall -Wextra -Iincludes -g -o $@
 
 run: $(EXE) .PHONY
 	./$(EXE)

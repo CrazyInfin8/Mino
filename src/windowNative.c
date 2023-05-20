@@ -1,4 +1,7 @@
+#include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 #include <wchar.h>
 
 // X11 also defines a `Window` type that conflicts with Mino. This hack
@@ -14,6 +17,7 @@
 #define Window MinoWindow
 #endif
 
+#include "gamepad.h"
 #include "graphics.h"
 #include "keyboard.h"
 #include "mouse.h"
@@ -33,15 +37,16 @@ static void resetInputState(Window *window) {
     window->pScrollY = window->scrollY;
     window->scrollX = 0;
     window->scrollY = 0;
-    Gamepad *gamepad;
-    for (int i = 0; i < window->gamepadCount; i++) {
-        gamepad = &window->gamepads[i];
-        gamepad->pButtons = gamepad->buttons;
-        gamepad->buttons = 0;
-        for (int j = 0; j < GAMEPAD_AXIS_COUNT; j++) {
-            gamepad->pAxes[j] = gamepad->axes[j];
-        }
-    }
+    // Gamepad *gamepad;
+    // for (int i = 0; i < window->gamepadCount; i++) {
+    //     gamepad = &window->gamepads[i];
+    //     if (gamepad->connected == false) continue;
+    //     gamepad->pButtons = gamepad->buttons;
+    //     gamepad->buttons = 0;
+    //     for (int j = 0; j < GAMEPAD_AXIS_COUNT; j++) {
+    //         gamepad->pAxes[j] = gamepad->axes[j];
+    //     }
+    // }
 }
 
 #if defined(PLATFORM_Windows)
@@ -381,49 +386,10 @@ void GraphicsAddColor(Color color) {
 // Gotta clean this up so X11 can work. Now `MinoWindow` is the Window for Mino
 // and `Window` is for X11's window ID.
 #undef Window
-#include <X11/XKBlib.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/XKBlib.h>
 #include <X11/keysym.h>
-
-struct WindowNative {
-    Display* xDisplay;
-    Window xWindow;
-    Atom deleteWindow;
-};
-
-bool WindowInit(MinoWindow* window, WindowConfig config) {
-    Display* xDisplay = XOpenDisplay(nil);
-    if (xDisplay == nil) {
-        return false;
-    }
-
-    int screenID = DefaultScreen(xDisplay);
-
-    Window xWindow = XCreateSimpleWindow(
-        xDisplay,
-        RootWindow(xDisplay, screenID),
-        10, 10, config.width, config.height, 1,
-        BlackPixel(xDisplay, screenID),
-        WhitePixel(xDisplay, screenID));
-
-    Atom deleteWindowAtom = XInternAtom(xDisplay, "WM_DELETE_WINDOW", false);
-    XSetWMProtocols(xDisplay, xWindow, &deleteWindowAtom, 1);
-
-    XSelectInput(xDisplay, xWindow, ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
-
-    XMapWindow(xDisplay, xWindow);
-    XSync(xDisplay, xWindow);
-
-    window->native = allocate(WindowNative);
-    *window->native = (WindowNative){
-        .xDisplay = xDisplay,
-        .xWindow = xWindow,
-        .deleteWindow = deleteWindowAtom,
-    };
-
-    return true;
-}
 
 Key XKey2MinoKey(int key) {
     switch (key) {
@@ -537,11 +503,221 @@ Key XKey2MinoKey(int key) {
     return KEY_INVALID;
 };
 
-bool WindowUpdate(MinoWindow* window) {
+// `XKey2MinoKey` needs to be before `#include <linux/input.h>` because it contains defines that collide with Mino.
+#include <linux/input.h>
+#include <linux/types.h>
+#include <fcntl.h>
+#include <libudev.h>
+#include <string.h>
+#include <unistd.h>
+
+struct WindowNative {
+    Display *xDisplay;
+    Window xWindow;
+    Atom deleteWindow;
+    struct udev *udev;
+    struct udev_monitor *monitor;
+};
+
+bool WindowInit(MinoWindow *window, WindowConfig config) {
+    Display *xDisplay = XOpenDisplay(nil);
+    if (xDisplay == nil) {
+        return false;
+    }
+
+    int screenID = DefaultScreen(xDisplay);
+
+    Window xWindow = XCreateSimpleWindow(
+        xDisplay,
+        RootWindow(xDisplay, screenID),
+        10, 10, config.width, config.height, 1,
+        BlackPixel(xDisplay, screenID),
+        WhitePixel(xDisplay, screenID));
+
+    Atom deleteWindowAtom = XInternAtom(xDisplay, "WM_DELETE_WINDOW", false);
+    XSetWMProtocols(xDisplay, xWindow, &deleteWindowAtom, 1);
+
+    XSelectInput(xDisplay, xWindow, ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
+
+    XMapWindow(xDisplay, xWindow);
+    XSync(xDisplay, xWindow);
+
+    struct udev *udev;
+    struct udev_monitor *monitor;
+
+    udev = udev_new();
+    if (udev == nil) {
+        println("Warning: unable to open udev");
+        XDestroyWindow(xDisplay, xWindow);
+        return false;
+    }
+
+    monitor = udev_monitor_new_from_netlink(udev, "udev");
+    udev_monitor_filter_add_match_subsystem_devtype(monitor, "input", nil);
+    udev_monitor_enable_receiving(monitor);
+
+    window->native = allocate(WindowNative);
+    *window->native = (WindowNative){
+        .xDisplay = xDisplay,
+        .xWindow = xWindow,
+        .deleteWindow = deleteWindowAtom,
+        .udev = udev,
+        .monitor = monitor,
+    };
+
+    return true;
+}
+
+struct GamepadNative {
+    int fileDescriptor;
+    char serial[32];
+};
+
+void updateController(MinoWindow *window) {
+    fd_set fileDescriptors;
+    FD_ZERO(&fileDescriptors);
+    FD_SET(udev_monitor_get_fd(window->native->monitor), &fileDescriptors);
+    while (true) {
+        if (FD_ISSET(udev_monitor_get_fd(window->native->monitor), &fileDescriptors)) {
+            struct udev_device *device;
+            const char *action;
+            device = udev_monitor_receive_device(window->native->monitor);
+            if (device == nil) {
+                return;
+            }
+
+            const char *isJoystick = udev_device_get_property_value(device, "ID_INPUT_JOYSTICK");
+            if (isJoystick == nil || strcmp(isJoystick, "1") != 0) {
+                udev_device_unref(device);
+                continue;
+            }
+
+            const char *deviceNode = udev_device_get_devnode(device);
+            if (hasPrefix(deviceNode, "/dev/input/event") == false) {
+                udev_device_unref(device);
+                continue;
+            }
+
+            const char *serial = udev_device_get_property_value(device, "ID_SERIAL_SHORT");
+            if (serial == nil) {
+                serial = udev_device_get_property_value(device, "ID_SERIAL");
+            }
+
+            // TODO: Device is confirmed to be an evdev interface to a game controller.
+            // It can be identified and distiguished by it's serial number.
+            //
+            // This can allow the same controller to reconnect to its previous GamepadNative
+            // (and allows us to disconnect the corresponding gamepad when removed).
+            //
+            // Also this function is called updateController but really this is
+            // simply checking for connections. This function should be renamed
+            // and a seperate function should be made to process each connected
+            // controllers input.
+            action = udev_device_get_action(device);
+            println("action: [%s]", action);
+            if (strcmp(action, "add") == 0) {
+                Gamepad *gamepad = nil;
+                // First, check if a controller is disconnected and has the same
+                // serial number so we can reconnect it.
+                for (int i = 0; i < window->gamepadCount; i++) {
+                    if (window->gamepads[i].connected == false && strcmp(window->gamepads[i].native->serial, serial) == 0) {
+                        window->gamepads[i].connected = true;
+                        udev_device_unref(device);
+                        println("Reconnecting controller with matching serial: %s", gamepad->native->serial);
+                        break;
+                    };
+                }
+                if (gamepad != nil) goto gamepad_found;
+                // If not found, then check for any other disconnected
+                // controllers to replace.
+                for (int i = 0; i < window->gamepadCount; i++) {
+                    if (window->gamepads[i].connected == false) {
+                        gamepad = &window->gamepads[i];
+                        println("Replacing controller with serial (%s) to: %s", gamepad->native->serial, serial);
+                        copyPad(serial, gamepad->native->serial, sizeof(gamepad->native->serial));
+                        break;
+                    };
+                }
+                if (gamepad != nil) goto gamepad_found;
+                // Finally, if no controllers are disconnected, add a new
+                // controller
+                Gamepad *newPointer = malloc(sizeof(Gamepad) * window->gamepadCount + 1);
+                memset(newPointer, 0, sizeof(Gamepad) * window->gamepadCount + 1);
+                if (window->gamepadCount > 0) {
+                    memcpy(newPointer, window->gamepads, sizeof(Gamepad) * window->gamepadCount);
+                    free(window->gamepads);
+                }
+                gamepad = &newPointer[window->gamepadCount];
+                window->gamepadCount++;
+                window->gamepads = newPointer;
+                gamepad->native = malloc(sizeof(GamepadNative));
+                memset(gamepad->native, 0, sizeof(GamepadNative));
+                uint32 serialSize = strlen(serial);
+                serialSize = serialSize > sizeof(char)*32 ? sizeof(char)*32 : serialSize;
+                println("Size: %lu", serialSize);
+                memcpy(gamepad->native->serial, serial, serialSize);
+                println("Connecting a new controller with serial: %s", gamepad->native->serial);
+            gamepad_found:
+                gamepad->native->fileDescriptor = open(deviceNode, O_RDONLY | O_NONBLOCK);
+                gamepad->connected = true;
+                println("Joystick connected successfully with serial: %s", gamepad->native->serial);
+            } else if (strcmp(action, "remove") == 0) {
+                println("Begin removal");
+                Gamepad *gamepad = nil;
+                for (int i = 0; i < window->gamepadCount; i++) {
+                    println("~> %p", window);
+                    println("~> %d / %d", i, window->gamepadCount);
+                    println("~> %p", window->gamepads);
+                    println("~> %p", &window->gamepads[i]);
+                    println("~> %p", &window->gamepads[i].native);
+                    println("~> %p", window->gamepads[i].native->serial);
+                    println("~> %c", *window->gamepads[i].native->serial);  // this segfaults.
+                    println("~> %s", serial);
+                    if (window->gamepads[i].connected) println("%s == %s : %s", window->gamepads[i].native->serial, serial, strcmp(window->gamepads[i].native->serial, serial) == 0 ? "true" : "false");
+                    if (window->gamepads[i].connected && strcmp(window->gamepads[i].native->serial, serial) == 0) {
+                        gamepad = &window->gamepads[i];
+                        break;
+                    }
+                }
+                if (gamepad == nil) {
+                    println("Disconnected controller was never connected");
+                    continue;
+                }
+                println("###");
+                gamepad->connected = false;
+                close(gamepad->native->fileDescriptor);
+                println("$$$");
+                gamepad->native->fileDescriptor = 0;
+                println("***");
+                println("Joystick successfully disconnected");
+            }
+
+            udev_device_unref(device);
+            println("***");
+        }
+    }
+}
+
+bool WindowUpdate(MinoWindow *window) {
+    println("*** At start of update ***");
+    println("gamepadCount: %d", window->gamepadCount);
+    println("gamepadPtr: %p", window->gamepads);
+    for (int i = 0; i < window->gamepadCount; i++) {
+        println("gamepad [%d] native: %p", i, window->gamepads[i].native);
+        println("gamepad [%d] serial: %s", i, window->gamepads[i].native->serial);
+    }
     XEvent event;
-    WindowNative* native = window->native;
+    WindowNative *native = window->native;
 
     resetInputState(window);
+
+    println("*** after resetInputState ***");
+    println("gamepadCount: %d", window->gamepadCount);
+    println("gamepadPtr: %p", window->gamepads);
+    for (int i = 0; i < window->gamepadCount; i++) {
+        println("gamepad [%d] native: %p", i, window->gamepads[i].native);
+        println("gamepad [%d] serial: %s", i, window->gamepads[i].native->serial);
+    }
 
     while (XPending(native->xDisplay)) {
         XNextEvent(native->xDisplay, &event);
@@ -550,7 +726,6 @@ bool WindowUpdate(MinoWindow* window) {
                 window->mouseX = event.xmotion.x;
                 window->mouseY = event.xmotion.y;
             } break;
-
 
             case ButtonPress: {
                 switch (event.xbutton.button) {
@@ -648,28 +823,29 @@ bool WindowUpdate(MinoWindow* window) {
             } break;
         }
     }
+    println("*** Before updateController ***");
+    println("gamepadCount: %d", window->gamepadCount);
+    println("gamepadPtr: %p", window->gamepads);
+    for (int i = 0; i < window->gamepadCount; i++) {
+        println("gamepad [%d] native: %p", i, window->gamepads[i].native);
+        println("gamepad [%d] serial: %s", i, window->gamepads[i].native->serial);
+    }
+    updateController(window);
+    println("*** After updateController ***");
+    println("gamepadCount: %d", window->gamepadCount);
+    println("gamepadPtr: %p", window->gamepads);
+    for (int i = 0; i < window->gamepadCount; i++) {
+        println("gamepad [%d] native: %p", i, window->gamepads[i].native);
+        println("gamepad [%d] serial: %s", i, window->gamepads[i].native->serial);
+    }
     return true;
 }
 
-void WindowClose(MinoWindow* window) {
+void WindowClose(MinoWindow *window) {
     XDestroyWindow(window->native->xDisplay, window->native->xWindow);
     XCloseDisplay(window->native->xDisplay);
     free(window->native);
 }
-
-/*
-FENSTER_API void fenster_sleep(int64_t ms) {
-  struct timespec ts;
-  ts.tv_sec = ms / 1000;
-  ts.tv_nsec = (ms % 1000) * 1000000;
-  nanosleep(&ts, NULL);
-}
-FENSTER_API int64_t fenster_time() {
-  struct timespec time;
-  clock_gettime(CLOCK_REALTIME, &time);
-  return time.tv_sec * 1000 + (time.tv_nsec / 1000000);
-}
-*/
 
 #include <time.h>
 

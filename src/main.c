@@ -29,6 +29,27 @@ Audio audio;
 //         .type = SineOscillator,
 //     },
 // };
+#include <execinfo.h>
+void print_trace(void) {
+    void *array[10];
+    size_t size;
+    char **strings;
+    size_t i;
+
+    size = backtrace(array, 10);
+    strings = backtrace_symbols(array, size);
+
+    printf("Obtained %zd stack frames.\n", size);
+
+    for (i = 0; i < size; i++) {
+        printf("%s\n", strings[i]);
+    }
+}
+
+struct GamepadNative {
+    int fileDescriptor;
+    char serial[32];
+};
 
 int main(void) {
     println("Starting game");
@@ -51,6 +72,15 @@ int main(void) {
     // Aff3Print(aff3);
     while (WindowUpdate(&window)) {
         int64 begin = WindowTime();
+
+        println("*** In main ***");
+        println("gamepadCount: %d", window.gamepadCount);
+        println("gamepadPtr: %p", window.gamepads);
+        for (int i = 0; i < window.gamepadCount; i++) {
+            println("gamepad [%d] native: %p", i, window.gamepads[i].native);
+            println("gamepad [%d] serial: %s", i, window.gamepads[i].native->serial);
+        }
+        // if (window.gamepadCount > 0) break;
 
         // int availableAudio = AudioAvailable(&audio);
         // if (availableAudio > 0) {
@@ -123,11 +153,18 @@ int main(void) {
         // GraphicsEnd();
 
         int64 now = WindowTime();
-        if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {
-            WindowSleep(1000 / 60 - (now - begin));
+        if (now - begin < 2000 && 2000 - (now - begin) > 0) {
+            WindowSleep(2000 - (now - begin));
         }
     }
 
+    println("*** After main ***");
+    println("gamepadCount: %d", window.gamepadCount);
+    println("gamepadPtr: %p", window.gamepads);
+    for (int i = 0; i < window.gamepadCount; i++) {
+        println("gamepad [%d] native: %p", i, window.gamepads[i].native);
+        println("gamepad [%d] serial: %s", i, window.gamepads[i].native->serial);
+    }
     // GraphicsClose(&window);
     // AudioClose(&audio);
     WindowClose(&window);
