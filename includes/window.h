@@ -4,6 +4,7 @@
 #include "gamepad.h"
 #include "keyboard.h"
 #include "types.h"
+#include "list.h"
 
 // `WindowNative` is the platforms native implementation of a window.
 //
@@ -33,9 +34,7 @@ typedef struct Window {
     byte mousePressed;
     byte pMousePressed;
 
-    Gamepad* firstGamepad;
-    Gamepad* gamepads;
-    int gamepadCount;
+    GamepadList gamepads;
 
     WindowNative* native;
 } Window;

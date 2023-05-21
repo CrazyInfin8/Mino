@@ -37,16 +37,16 @@ static void resetInputState(Window *window) {
     window->pScrollY = window->scrollY;
     window->scrollX = 0;
     window->scrollY = 0;
-    // Gamepad *gamepad;
-    // for (int i = 0; i < window->gamepadCount; i++) {
-    //     gamepad = &window->gamepads[i];
-    //     if (gamepad->connected == false) continue;
-    //     gamepad->pButtons = gamepad->buttons;
-    //     gamepad->buttons = 0;
-    //     for (int j = 0; j < GAMEPAD_AXIS_COUNT; j++) {
-    //         gamepad->pAxes[j] = gamepad->axes[j];
-    //     }
-    // }
+    Gamepad *gamepad;
+    for (int i = 0; i < window->gamepads.len; i++) {
+        gamepad = GamepadListGet(&window->gamepads, i);
+        if (gamepad->connected == false) continue;
+        gamepad->pButtons = gamepad->buttons;
+        gamepad->buttons = 0;
+        for (int j = 0; j < GAMEPAD_AXIS_COUNT; j++) {
+            gamepad->pAxes[j] = gamepad->axes[j];
+        }
+    }
 }
 
 #if defined(PLATFORM_Windows)
@@ -564,16 +564,82 @@ bool WindowInit(MinoWindow *window, WindowConfig config) {
         .udev = udev,
         .monitor = monitor,
     };
-
+    GamepadListInit(&window->gamepads, 0, 0);
     return true;
 }
 
 struct GamepadNative {
     int fileDescriptor;
-    char serial[32];
+    char *deviceNode;
 };
 
-void updateController(MinoWindow *window) {
+static void connectController(MinoWindow *window, const char *deviceNode) {
+    const int deviceNodeLen = strlen(deviceNode) + 1;
+    Gamepad *gamepad = nil;
+
+    // Attempt to reconnect controller with matching file name.
+    for (int i = 0; i < window->gamepads.len; i++) {
+        Gamepad *temp = GamepadListGet(&window->gamepads, i);
+        if (temp->connected == false && strcmp(temp->native->deviceNode, deviceNode) == 0) {
+            println("Reconnecting same controller");
+            gamepad = temp;
+            goto foundGamepad;
+        }
+    }
+
+    // If no controllers have this file name, attempt to reconnect
+    // with any disconnected controller.
+    for (int i = 0; i < window->gamepads.len; i++) {
+        Gamepad *temp = GamepadListGet(&window->gamepads, i);
+        if (temp->connected == false) {
+            println("Replacing a controller");
+            gamepad = temp;
+            free(gamepad->native->deviceNode);
+            goto replaceGamepad;
+        };
+    }
+
+    // Finally, if no controllers are disconencted, just connect a
+    // new controller.
+    {
+        println("Creating a new controller");
+        GamepadListPush(&window->gamepads, (Gamepad){});
+        gamepad = GamepadListGet(&window->gamepads, window->gamepads.len - 1);
+        gamepad->native = malloc(sizeof(GamepadNative));
+        memset(gamepad->native, 0, sizeof(GamepadNative));
+    }
+
+replaceGamepad:
+    gamepad->native->deviceNode = malloc(deviceNodeLen + 1);
+    gamepad->native->deviceNode[deviceNodeLen] = '\0';
+    memcpy(gamepad->native->deviceNode, deviceNode, deviceNodeLen);
+
+foundGamepad:
+    gamepad->native->fileDescriptor = open(deviceNode, O_RDONLY | O_NONBLOCK);
+    gamepad->connected = true;
+    println("Added controller located at: %s", gamepad->native->deviceNode);
+}
+
+static void disconnectController(MinoWindow *window, const char *deviceNode) {
+    Gamepad *gamepad = nil;
+    for (int i = 0; i < window->gamepads.len; i++) {
+        Gamepad *temp = GamepadListGet(&window->gamepads, i);
+        if (temp->connected == true && strcmp(temp->native->deviceNode, deviceNode) == 0) {
+            gamepad = temp;
+            break;
+        }
+    }
+    if (gamepad == nil) {
+        println("Disconnected gamepad was never connected");
+        return;
+    }
+    println("Disconnecting controller located at: %s", gamepad->native->deviceNode);
+    close(gamepad->native->fileDescriptor);
+    gamepad->native->fileDescriptor = 0;
+    gamepad->connected = false;
+}
+
+static void refreshControllers(MinoWindow *window) {
     fd_set fileDescriptors;
     FD_ZERO(&fileDescriptors);
     FD_SET(udev_monitor_get_fd(window->native->monitor), &fileDescriptors);
@@ -598,127 +664,23 @@ void updateController(MinoWindow *window) {
                 continue;
             }
 
-            const char *serial = udev_device_get_property_value(device, "ID_SERIAL_SHORT");
-            if (serial == nil) {
-                serial = udev_device_get_property_value(device, "ID_SERIAL");
-            }
-
-            // TODO: Device is confirmed to be an evdev interface to a game controller.
-            // It can be identified and distiguished by it's serial number.
-            //
-            // This can allow the same controller to reconnect to its previous GamepadNative
-            // (and allows us to disconnect the corresponding gamepad when removed).
-            //
-            // Also this function is called updateController but really this is
-            // simply checking for connections. This function should be renamed
-            // and a seperate function should be made to process each connected
-            // controllers input.
             action = udev_device_get_action(device);
             println("action: [%s]", action);
             if (strcmp(action, "add") == 0) {
-                Gamepad *gamepad = nil;
-                // First, check if a controller is disconnected and has the same
-                // serial number so we can reconnect it.
-                for (int i = 0; i < window->gamepadCount; i++) {
-                    if (window->gamepads[i].connected == false && strcmp(window->gamepads[i].native->serial, serial) == 0) {
-                        window->gamepads[i].connected = true;
-                        udev_device_unref(device);
-                        println("Reconnecting controller with matching serial: %s", gamepad->native->serial);
-                        break;
-                    };
-                }
-                if (gamepad != nil) goto gamepad_found;
-                // If not found, then check for any other disconnected
-                // controllers to replace.
-                for (int i = 0; i < window->gamepadCount; i++) {
-                    if (window->gamepads[i].connected == false) {
-                        gamepad = &window->gamepads[i];
-                        println("Replacing controller with serial (%s) to: %s", gamepad->native->serial, serial);
-                        copyPad(serial, gamepad->native->serial, sizeof(gamepad->native->serial));
-                        break;
-                    };
-                }
-                if (gamepad != nil) goto gamepad_found;
-                // Finally, if no controllers are disconnected, add a new
-                // controller
-                Gamepad *newPointer = malloc(sizeof(Gamepad) * window->gamepadCount + 1);
-                memset(newPointer, 0, sizeof(Gamepad) * window->gamepadCount + 1);
-                if (window->gamepadCount > 0) {
-                    memcpy(newPointer, window->gamepads, sizeof(Gamepad) * window->gamepadCount);
-                    free(window->gamepads);
-                }
-                gamepad = &newPointer[window->gamepadCount];
-                window->gamepadCount++;
-                window->gamepads = newPointer;
-                gamepad->native = malloc(sizeof(GamepadNative));
-                memset(gamepad->native, 0, sizeof(GamepadNative));
-                uint32 serialSize = strlen(serial);
-                serialSize = serialSize > sizeof(char)*32 ? sizeof(char)*32 : serialSize;
-                println("Size: %lu", serialSize);
-                memcpy(gamepad->native->serial, serial, serialSize);
-                println("Connecting a new controller with serial: %s", gamepad->native->serial);
-            gamepad_found:
-                gamepad->native->fileDescriptor = open(deviceNode, O_RDONLY | O_NONBLOCK);
-                gamepad->connected = true;
-                println("Joystick connected successfully with serial: %s", gamepad->native->serial);
+                connectController(window, deviceNode);
             } else if (strcmp(action, "remove") == 0) {
-                println("Begin removal");
-                Gamepad *gamepad = nil;
-                for (int i = 0; i < window->gamepadCount; i++) {
-                    println("~> %p", window);
-                    println("~> %d / %d", i, window->gamepadCount);
-                    println("~> %p", window->gamepads);
-                    println("~> %p", &window->gamepads[i]);
-                    println("~> %p", &window->gamepads[i].native);
-                    println("~> %p", window->gamepads[i].native->serial);
-                    println("~> %c", *window->gamepads[i].native->serial);  // this segfaults.
-                    println("~> %s", serial);
-                    if (window->gamepads[i].connected) println("%s == %s : %s", window->gamepads[i].native->serial, serial, strcmp(window->gamepads[i].native->serial, serial) == 0 ? "true" : "false");
-                    if (window->gamepads[i].connected && strcmp(window->gamepads[i].native->serial, serial) == 0) {
-                        gamepad = &window->gamepads[i];
-                        break;
-                    }
-                }
-                if (gamepad == nil) {
-                    println("Disconnected controller was never connected");
-                    continue;
-                }
-                println("###");
-                gamepad->connected = false;
-                close(gamepad->native->fileDescriptor);
-                println("$$$");
-                gamepad->native->fileDescriptor = 0;
-                println("***");
-                println("Joystick successfully disconnected");
+                disconnectController(window, deviceNode);
             }
-
             udev_device_unref(device);
-            println("***");
         }
     }
 }
 
 bool WindowUpdate(MinoWindow *window) {
-    println("*** At start of update ***");
-    println("gamepadCount: %d", window->gamepadCount);
-    println("gamepadPtr: %p", window->gamepads);
-    for (int i = 0; i < window->gamepadCount; i++) {
-        println("gamepad [%d] native: %p", i, window->gamepads[i].native);
-        println("gamepad [%d] serial: %s", i, window->gamepads[i].native->serial);
-    }
     XEvent event;
     WindowNative *native = window->native;
 
     resetInputState(window);
-
-    println("*** after resetInputState ***");
-    println("gamepadCount: %d", window->gamepadCount);
-    println("gamepadPtr: %p", window->gamepads);
-    for (int i = 0; i < window->gamepadCount; i++) {
-        println("gamepad [%d] native: %p", i, window->gamepads[i].native);
-        println("gamepad [%d] serial: %s", i, window->gamepads[i].native->serial);
-    }
-
     while (XPending(native->xDisplay)) {
         XNextEvent(native->xDisplay, &event);
         switch (event.type) {
@@ -823,27 +785,31 @@ bool WindowUpdate(MinoWindow *window) {
             } break;
         }
     }
-    println("*** Before updateController ***");
-    println("gamepadCount: %d", window->gamepadCount);
-    println("gamepadPtr: %p", window->gamepads);
-    for (int i = 0; i < window->gamepadCount; i++) {
-        println("gamepad [%d] native: %p", i, window->gamepads[i].native);
-        println("gamepad [%d] serial: %s", i, window->gamepads[i].native->serial);
-    }
-    updateController(window);
-    println("*** After updateController ***");
-    println("gamepadCount: %d", window->gamepadCount);
-    println("gamepadPtr: %p", window->gamepads);
-    for (int i = 0; i < window->gamepadCount; i++) {
-        println("gamepad [%d] native: %p", i, window->gamepads[i].native);
-        println("gamepad [%d] serial: %s", i, window->gamepads[i].native->serial);
-    }
+    refreshControllers(window);
     return true;
 }
 
 void WindowClose(MinoWindow *window) {
     XDestroyWindow(window->native->xDisplay, window->native->xWindow);
     XCloseDisplay(window->native->xDisplay);
+    Gamepad *gamepad;
+    for (int i = 0; i < window->gamepads.len; i++) {
+        gamepad = GamepadListGet(&window->gamepads, i);
+        if (gamepad->connected) {
+            close(gamepad->native->fileDescriptor);
+        }
+        if (gamepad->native != nil) {
+            if (gamepad->native->deviceNode != nil) {
+                free(gamepad->native->deviceNode);
+                gamepad->native->deviceNode = nil;
+            }
+            free(gamepad->native);
+            gamepad->native = nil;
+        }
+    }
+    GamepadListFree(&window->gamepads);
+    udev_monitor_unref(window->native->monitor);
+    udev_unref(window->native->udev);
     free(window->native);
 }
 

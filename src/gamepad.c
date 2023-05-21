@@ -1,7 +1,10 @@
 #include "gamepad.h"
+#include "list.h"
 #include "types.h"
 #include "utils.h"
 #include "window.h"
+
+DefList(Gamepad, GamepadList)
 
 bool GamepadConnected(Gamepad* gamepad) {
     return gamepad->connected;

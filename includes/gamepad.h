@@ -2,6 +2,7 @@
 #define Gamepad_H
 
 #include "types.h"
+#include "list.h"
 
 typedef struct Window Window;
 
@@ -108,6 +109,8 @@ typedef struct Gamepad {
     int playerID;
     GamepadNative* native;
 } Gamepad;
+
+DecList(Gamepad, GamepadList)
 
 // `WindowGetGamepad` retrieves a players gamepad given their playerID (most
 // often 1-4).

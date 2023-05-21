@@ -72,15 +72,7 @@ int main(void) {
     // Aff3Print(aff3);
     while (WindowUpdate(&window)) {
         int64 begin = WindowTime();
-
-        println("*** In main ***");
-        println("gamepadCount: %d", window.gamepadCount);
-        println("gamepadPtr: %p", window.gamepads);
-        for (int i = 0; i < window.gamepadCount; i++) {
-            println("gamepad [%d] native: %p", i, window.gamepads[i].native);
-            println("gamepad [%d] serial: %s", i, window.gamepads[i].native->serial);
-        }
-        // if (window.gamepadCount > 0) break;
+        // if (window.gamepads.len > 0) break;
 
         // int availableAudio = AudioAvailable(&audio);
         // if (availableAudio > 0) {
@@ -156,14 +148,6 @@ int main(void) {
         if (now - begin < 2000 && 2000 - (now - begin) > 0) {
             WindowSleep(2000 - (now - begin));
         }
-    }
-
-    println("*** After main ***");
-    println("gamepadCount: %d", window.gamepadCount);
-    println("gamepadPtr: %p", window.gamepads);
-    for (int i = 0; i < window.gamepadCount; i++) {
-        println("gamepad [%d] native: %p", i, window.gamepads[i].native);
-        println("gamepad [%d] serial: %s", i, window.gamepads[i].native->serial);
     }
     // GraphicsClose(&window);
     // AudioClose(&audio);

@@ -36,6 +36,9 @@ $(EXE): src/*.c includes/*.h
 run: $(EXE) .PHONY
 	./$(EXE)
 
+valgrind: $(EXE) .PHONY
+	valgrind --leak-check=full -s ./$(EXE)
+
 release: $(OPTIMIZED_EXE) .PHONY
 
 $(OPTIMIZED_EXE): src/*.c includes/*.h
