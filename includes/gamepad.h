@@ -72,6 +72,7 @@ typedef enum PACK_ENUM GamepadButton {
     // `GAMEPAD_BUTTON_COUNT` is not a gamepad button. It denotes the number of
     // gamepad buttons available to check.
     GAMEPAD_BUTTON_COUNT,
+    GAMEPAD_BUTTON_INVALID,
 } GamepadButton;
 
 // `GamepadAxis` represents an analog axis on a standard gamepad controller.
@@ -104,7 +105,9 @@ typedef struct Gamepad {
     uint32 pButtons;
 
     float32 leftMotor;
+    float32 pLeftMotor;
     float32 rightMotor;
+    float32 pRightMotor;
 
     int playerID;
     GamepadNative* native;
@@ -112,11 +115,11 @@ typedef struct Gamepad {
 
 DecList(Gamepad, GamepadList)
 
-// `WindowGetGamepad` retrieves a players gamepad given their playerID (most
-// often 1-4).
-//
-// If the playerID is more than supported, this function returns `nil`.
-Gamepad* WindowGetGamepad(Window* window, int playerID);
+    // `WindowGetGamepad` retrieves a players gamepad given their playerID (most
+    // often 1-4).
+    //
+    // If the playerID is more than supported, this function returns `nil`.
+    Gamepad* WindowGetGamepad(Window* window, int playerID);
 
 // `WindowGetFirstConnectedGamepad` attempts to retrieve the first gamepad that
 // was connected.
@@ -163,6 +166,6 @@ float32 GamepadAxisValue(Gamepad* gamepad, GamepadAxis axis);
 // The left and right vibration motor may not be the same. For example, on XBox
 // controllers and PS4 DualShocks, the left motor is for low frequency
 // vibrations while the right motor is for high frequency vibrations.
-void GamepadSetVibration(float32 leftMotor, float32 rightMotor);
+void GamepadSetVibration(Gamepad* gamepad, float32 leftMotor, float32 rightMotor);
 
 #endif  // Gamepad_H

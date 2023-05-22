@@ -28,7 +28,7 @@ bool ListInit(List* list, int itemSize, int len, int cap) {
 }
 
 void* ListGet(List* list, int index) {
-    if (index > list->cap || index < 0) return nil;
+    if (index >= list->cap || index < 0) return nil;
     return &list->data[index * list->itemSize];
 }
 

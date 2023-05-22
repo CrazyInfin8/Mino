@@ -29,27 +29,6 @@ Audio audio;
 //         .type = SineOscillator,
 //     },
 // };
-#include <execinfo.h>
-void print_trace(void) {
-    void *array[10];
-    size_t size;
-    char **strings;
-    size_t i;
-
-    size = backtrace(array, 10);
-    strings = backtrace_symbols(array, size);
-
-    printf("Obtained %zd stack frames.\n", size);
-
-    for (i = 0; i < size; i++) {
-        printf("%s\n", strings[i]);
-    }
-}
-
-struct GamepadNative {
-    int fileDescriptor;
-    char serial[32];
-};
 
 int main(void) {
     println("Starting game");
@@ -111,24 +90,28 @@ int main(void) {
 
         print("Mouse: { X: %d, Y: %d }\r", window.mouseX, window.mouseY);
 
-        // Gamepad *gamepad = WindowGetFirstConnectedGamepad(&window);
-        // if (gamepad && gamepad->connected) {
-        //     bool APressed = GamepadButtonPressed(gamepad, GAMEPAD_A);
-        //     bool BPressed = GamepadButtonPressed(gamepad, GAMEPAD_B);
-        //     bool XPressed = GamepadButtonPressed(gamepad, GAMEPAD_X);
-        //     bool YPressed = GamepadButtonPressed(gamepad, GAMEPAD_Y);
-        //     println("Gamepad connected: (Buttons: %s, %s, %s, %s), Left stick: (X: % .6f, Y: % .6f), Right stick: (X: % .6f, Y: % .6f)",
-        //         APressed ? "A" : " ",
-        //         BPressed ? "B" : " ",
-        //         XPressed ? "X" : " ",
-        //         YPressed ? "Y" : " ",
-        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_X),
-        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_Y),
-        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_X),
-        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_Y));
-        // } else {
-        //     println("No gamepads connected");
-        // }
+        Gamepad *gamepad = WindowGetFirstConnectedGamepad(&window);
+        if (gamepad && gamepad->connected) {
+            // bool APressed = GamepadButtonPressed(gamepad, GAMEPAD_A);
+            // bool BPressed = GamepadButtonPressed(gamepad, GAMEPAD_B);
+            // bool XPressed = GamepadButtonPressed(gamepad, GAMEPAD_X);
+            // bool YPressed = GamepadButtonPressed(gamepad, GAMEPAD_Y);
+            // println("Gamepad connected: (Buttons: %s, %s, %s, %s), Left stick: (X: % .6f, Y: % .6f), Right stick: (X: % .6f, Y: % .6f)",
+            //     APressed ? "A" : " ",
+            //     BPressed ? "B" : " ",
+            //     XPressed ? "X" : " ",
+            //     YPressed ? "Y" : " ",
+            //     GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_X),
+            //     GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_Y),
+            //     GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_X),
+            //     GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_Y));
+            // println("0x%04lX", gamepad->buttons);
+            GamepadSetVibration(gamepad,
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_TRIGGER),
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_TRIGGER));
+        } else {
+            println("No gamepads connected");
+        }
 
         // GraphicsClear(&window);
         // GraphicsBegin(&window);
@@ -145,8 +128,8 @@ int main(void) {
         // GraphicsEnd();
 
         int64 now = WindowTime();
-        if (now - begin < 2000 && 2000 - (now - begin) > 0) {
-            WindowSleep(2000 - (now - begin));
+        if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {
+            WindowSleep(1000 / 60 - (now - begin));
         }
     }
     // GraphicsClose(&window);

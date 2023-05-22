@@ -1,7 +1,5 @@
-#include <errno.h>
-#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <sys/ioctl.h>
 #include <wchar.h>
 
 // X11 also defines a `Window` type that conflicts with Mino. This hack
@@ -42,7 +40,6 @@ static void resetInputState(Window *window) {
         gamepad = GamepadListGet(&window->gamepads, i);
         if (gamepad->connected == false) continue;
         gamepad->pButtons = gamepad->buttons;
-        gamepad->buttons = 0;
         for (int j = 0; j < GAMEPAD_AXIS_COUNT; j++) {
             gamepad->pAxes[j] = gamepad->axes[j];
         }
@@ -386,12 +383,9 @@ void GraphicsAddColor(Color color) {
 // Gotta clean this up so X11 can work. Now `MinoWindow` is the Window for Mino
 // and `Window` is for X11's window ID.
 #undef Window
-#include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <X11/XKBlib.h>
-#include <X11/keysym.h>
 
-Key XKey2MinoKey(int key) {
+static Key XKey2MinoKey(int key) {
     switch (key) {
         case XK_a: return KEY_A;
         case XK_b: return KEY_B;
@@ -498,10 +492,9 @@ Key XKey2MinoKey(int key) {
         case XK_slash: return KEY_SLASH;
         case XK_space: return KEY_SPACE;
         case XK_Tab: return KEY_TAB;
+        default: return KEY_INVALID;
     }
-    println("Unhandled keycode: 0x%04X", key);
-    return KEY_INVALID;
-};
+}
 
 // `XKey2MinoKey` needs to be before `#include <linux/input.h>` because it contains defines that collide with Mino.
 #include <linux/input.h>
@@ -510,6 +503,9 @@ Key XKey2MinoKey(int key) {
 #include <libudev.h>
 #include <string.h>
 #include <unistd.h>
+#include <X11/XKBlib.h>
+#include <X11/Xlib.h>
+#include <sys/ioctl.h>
 
 struct WindowNative {
     Display *xDisplay;
@@ -518,6 +514,131 @@ struct WindowNative {
     struct udev *udev;
     struct udev_monitor *monitor;
 };
+
+struct GamepadNative {
+    int fileDescriptor;
+    char *devicePath;
+    struct input_absinfo analogInfos[GAMEPAD_AXIS_COUNT];
+    struct ff_effect rumble;
+};
+
+const int minoAxis2EvdevAxis[GAMEPAD_AXIS_COUNT] = {
+    [GAMEPAD_AXIS_LEFT_STICK_X] = ABS_X,
+    [GAMEPAD_AXIS_LEFT_STICK_Y] = ABS_Y,
+    [GAMEPAD_AXIS_LEFT_TRIGGER] = ABS_Z,
+    [GAMEPAD_AXIS_RIGHT_STICK_X] = ABS_RX,
+    [GAMEPAD_AXIS_RIGHT_STICK_Y] = ABS_RY,
+    [GAMEPAD_AXIS_RIGHT_TRIGGER] = ABS_RZ,
+};
+
+const int evdevAxis2MinoAxis[GAMEPAD_AXIS_COUNT] = {
+    [ABS_X] = GAMEPAD_AXIS_LEFT_STICK_X,
+    [ABS_Y] = GAMEPAD_AXIS_LEFT_STICK_Y,
+    [ABS_Z] = GAMEPAD_AXIS_LEFT_TRIGGER,
+    [ABS_RX] = GAMEPAD_AXIS_RIGHT_STICK_X,
+    [ABS_RY] = GAMEPAD_AXIS_RIGHT_STICK_Y,
+    [ABS_RZ] = GAMEPAD_AXIS_RIGHT_TRIGGER,
+};
+
+GamepadButton evdevButton2MinoButton(int button) {
+    switch (button) {
+        case BTN_A: return GAMEPAD_A;
+        case BTN_B: return GAMEPAD_B;
+        case BTN_X: return GAMEPAD_X;
+        case BTN_Y: return GAMEPAD_Y;
+        case BTN_START: return GAMEPAD_START;
+        case BTN_SELECT: return GAMEPAD_SELECT;
+        case BTN_TL: return GAMEPAD_L1;
+        case BTN_TR: return GAMEPAD_R1;
+        case BTN_TL2: return GAMEPAD_L2;
+        case BTN_TR2: return GAMEPAD_R2;
+        case BTN_THUMBL: return GAMEPAD_L3;
+        case BTN_THUMBR: return GAMEPAD_R3;
+        case BTN_MODE: return GAMEPAD_HOME;
+        default: return GAMEPAD_BUTTON_INVALID;
+    }
+};
+
+const struct input_absinfo fallbackInfos = {
+    .minimum = -1,
+    .maximum = 1,
+};
+
+static void connectController(MinoWindow *window, const char *devicePath) {
+    const int devicePathLen = strlen(devicePath) + 1;
+    Gamepad *gamepad = nil;
+    int fd = open(devicePath, O_RDWR | O_NONBLOCK);
+    if (fd < 0) return;
+
+    // Attempt to reconnect controller with matching file name.
+    for (int i = 0; i < window->gamepads.len; i++) {
+        gamepad = GamepadListGet(&window->gamepads, i);
+        if (gamepad->connected == false && strcmp(gamepad->native->devicePath, devicePath) == 0) {
+            goto foundGamepad;
+        }
+    }
+
+    // If no controllers have this file name, attempt to reconnect
+    // with any disconnected controller.
+    for (int i = 0; i < window->gamepads.len; i++) {
+        gamepad = GamepadListGet(&window->gamepads, i);
+        if (gamepad->connected == false) {
+            free(gamepad->native->devicePath);
+            goto replaceGamepad;
+        };
+    }
+
+    // Finally, if no controllers are disconnected, just connect a
+    // new controller.
+    {
+        GamepadListPush(&window->gamepads, (Gamepad){});
+        gamepad = GamepadListGet(&window->gamepads, window->gamepads.len - 1);
+        gamepad->native = malloc(sizeof(GamepadNative));
+        memset(gamepad->native, 0, sizeof(GamepadNative));
+    }
+
+replaceGamepad:
+    gamepad->native->devicePath = malloc(devicePathLen + 1);
+    gamepad->native->devicePath[devicePathLen] = '\0';
+    gamepad->native->rumble = (struct ff_effect){
+        .id = -1,
+        .type = FF_RUMBLE,
+    };
+
+    memcpy(gamepad->native->devicePath, devicePath, devicePathLen);
+
+foundGamepad:;
+    for (GamepadAxis i = 0; i < GAMEPAD_AXIS_COUNT; i++) {
+        if (ioctl(fd, EVIOCGABS(minoAxis2EvdevAxis[i]), &gamepad->native->analogInfos[i])) {
+            gamepad->native->analogInfos[i] = fallbackInfos;
+        };
+    }
+    gamepad->native->fileDescriptor = fd;
+    gamepad->connected = true;
+    
+}
+
+static void disconnectController(MinoWindow *window, const char *devicePath) {
+    Gamepad *gamepad = nil;
+    for (int i = 0; i < window->gamepads.len; i++) {
+        Gamepad *temp = GamepadListGet(&window->gamepads, i);
+        if (temp->connected == true && strcmp(temp->native->devicePath, devicePath) == 0) {
+            gamepad = temp;
+            break;
+        }
+    }
+    if (gamepad == nil) return;
+
+    close(gamepad->native->fileDescriptor);
+    gamepad->native->fileDescriptor = 0;
+    gamepad->connected = false;
+    // just zero these out to be safe so, when a controller reconnects, none of
+    // the buttons or sticks are still held 
+    gamepad->buttons = 0;
+    for (int i = 0; i < GAMEPAD_AXIS_COUNT; i++) {
+        gamepad->axes[i] = 0;
+    }
+}
 
 bool WindowInit(MinoWindow *window, WindowConfig config) {
     Display *xDisplay = XOpenDisplay(nil);
@@ -542,19 +663,12 @@ bool WindowInit(MinoWindow *window, WindowConfig config) {
     XMapWindow(xDisplay, xWindow);
     XSync(xDisplay, xWindow);
 
-    struct udev *udev;
-    struct udev_monitor *monitor;
-
-    udev = udev_new();
+    struct udev *udev = udev_new();
     if (udev == nil) {
         println("Warning: unable to open udev");
         XDestroyWindow(xDisplay, xWindow);
         return false;
     }
-
-    monitor = udev_monitor_new_from_netlink(udev, "udev");
-    udev_monitor_filter_add_match_subsystem_devtype(monitor, "input", nil);
-    udev_monitor_enable_receiving(monitor);
 
     window->native = allocate(WindowNative);
     *window->native = (WindowNative){
@@ -562,81 +676,34 @@ bool WindowInit(MinoWindow *window, WindowConfig config) {
         .xWindow = xWindow,
         .deleteWindow = deleteWindowAtom,
         .udev = udev,
-        .monitor = monitor,
     };
-    GamepadListInit(&window->gamepads, 0, 0);
+    GamepadListInit(&window->gamepads, 0, 4);
+
+    struct udev_enumerate *devices = udev_enumerate_new(udev);
+    udev_enumerate_add_match_subsystem(devices, "input");
+    udev_enumerate_add_match_property(devices, "ID_INPUT_JOYSTICK", "1");
+    udev_enumerate_scan_devices(devices);
+    struct udev_list_entry *entry, *listEntry = udev_enumerate_get_list_entry(devices);
+    struct udev_device *device = NULL;
+    udev_list_entry_foreach(entry, listEntry) {
+        const char *sysPath = udev_list_entry_get_name(entry);
+        device = udev_device_new_from_syspath(udev, sysPath);
+
+        const char *devicePath = udev_device_get_devnode(device);
+        if (hasPrefix(devicePath, "/dev/input/event") == false) goto end;
+
+        connectController(window, devicePath);
+    end:
+        udev_device_unref(device);
+    }
+    udev_enumerate_unref(devices);
+
+    struct udev_monitor *monitor = udev_monitor_new_from_netlink(udev, "udev");
+    udev_monitor_filter_add_match_subsystem_devtype(monitor, "input", nil);
+    udev_monitor_enable_receiving(monitor);
+    window->native->monitor = monitor;
+
     return true;
-}
-
-struct GamepadNative {
-    int fileDescriptor;
-    char *deviceNode;
-};
-
-static void connectController(MinoWindow *window, const char *deviceNode) {
-    const int deviceNodeLen = strlen(deviceNode) + 1;
-    Gamepad *gamepad = nil;
-
-    // Attempt to reconnect controller with matching file name.
-    for (int i = 0; i < window->gamepads.len; i++) {
-        Gamepad *temp = GamepadListGet(&window->gamepads, i);
-        if (temp->connected == false && strcmp(temp->native->deviceNode, deviceNode) == 0) {
-            println("Reconnecting same controller");
-            gamepad = temp;
-            goto foundGamepad;
-        }
-    }
-
-    // If no controllers have this file name, attempt to reconnect
-    // with any disconnected controller.
-    for (int i = 0; i < window->gamepads.len; i++) {
-        Gamepad *temp = GamepadListGet(&window->gamepads, i);
-        if (temp->connected == false) {
-            println("Replacing a controller");
-            gamepad = temp;
-            free(gamepad->native->deviceNode);
-            goto replaceGamepad;
-        };
-    }
-
-    // Finally, if no controllers are disconencted, just connect a
-    // new controller.
-    {
-        println("Creating a new controller");
-        GamepadListPush(&window->gamepads, (Gamepad){});
-        gamepad = GamepadListGet(&window->gamepads, window->gamepads.len - 1);
-        gamepad->native = malloc(sizeof(GamepadNative));
-        memset(gamepad->native, 0, sizeof(GamepadNative));
-    }
-
-replaceGamepad:
-    gamepad->native->deviceNode = malloc(deviceNodeLen + 1);
-    gamepad->native->deviceNode[deviceNodeLen] = '\0';
-    memcpy(gamepad->native->deviceNode, deviceNode, deviceNodeLen);
-
-foundGamepad:
-    gamepad->native->fileDescriptor = open(deviceNode, O_RDONLY | O_NONBLOCK);
-    gamepad->connected = true;
-    println("Added controller located at: %s", gamepad->native->deviceNode);
-}
-
-static void disconnectController(MinoWindow *window, const char *deviceNode) {
-    Gamepad *gamepad = nil;
-    for (int i = 0; i < window->gamepads.len; i++) {
-        Gamepad *temp = GamepadListGet(&window->gamepads, i);
-        if (temp->connected == true && strcmp(temp->native->deviceNode, deviceNode) == 0) {
-            gamepad = temp;
-            break;
-        }
-    }
-    if (gamepad == nil) {
-        println("Disconnected gamepad was never connected");
-        return;
-    }
-    println("Disconnecting controller located at: %s", gamepad->native->deviceNode);
-    close(gamepad->native->fileDescriptor);
-    gamepad->native->fileDescriptor = 0;
-    gamepad->connected = false;
 }
 
 static void refreshControllers(MinoWindow *window) {
@@ -653,25 +720,131 @@ static void refreshControllers(MinoWindow *window) {
             }
 
             const char *isJoystick = udev_device_get_property_value(device, "ID_INPUT_JOYSTICK");
-            if (isJoystick == nil || strcmp(isJoystick, "1") != 0) {
-                udev_device_unref(device);
-                continue;
-            }
+            if (isJoystick == nil || strcmp(isJoystick, "1") != 0) goto end;
 
-            const char *deviceNode = udev_device_get_devnode(device);
-            if (hasPrefix(deviceNode, "/dev/input/event") == false) {
-                udev_device_unref(device);
-                continue;
+            const char *devicePath = udev_device_get_devnode(device);
+            if (hasPrefix(devicePath, "/dev/input/event") == false) {
+                goto end;
             }
 
             action = udev_device_get_action(device);
-            println("action: [%s]", action);
             if (strcmp(action, "add") == 0) {
-                connectController(window, deviceNode);
+                connectController(window, devicePath);
             } else if (strcmp(action, "remove") == 0) {
-                disconnectController(window, deviceNode);
+                disconnectController(window, devicePath);
             }
+        end:
             udev_device_unref(device);
+        }
+    }
+}
+
+static void setAxis(Gamepad *gamepad, struct input_event event) {
+    if (event.code == ABS_HAT0X) {
+        if (event.value >= 1) {
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_LEFT);
+            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_RIGHT);
+        } else if (event.value <= -1) {
+            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_LEFT);
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_RIGHT);
+        } else {
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_LEFT);
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_RIGHT);
+        }
+        return;
+    } else if (event.code == ABS_HAT0Y) {
+        if (event.value >= 1) {
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_DOWN);
+            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_UP);
+        } else if (event.value <= -1) {
+            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_DOWN);
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_UP);
+        } else {
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_DOWN);
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_UP);
+        }
+        return;
+    }
+    if (event.code >= GAMEPAD_AXIS_COUNT) return;  // unsupported axis.
+    GamepadAxis axis = evdevAxis2MinoAxis[event.code];
+    struct input_absinfo info = gamepad->native->analogInfos[axis];
+    if (axis == GAMEPAD_AXIS_LEFT_STICK_Y || axis == GAMEPAD_AXIS_RIGHT_STICK_Y) event.value *= -1;
+    if (axis == GAMEPAD_AXIS_LEFT_TRIGGER || axis == GAMEPAD_AXIS_RIGHT_TRIGGER) {
+        gamepad->axes[axis] = clamp((float32)(event.value - info.minimum) / (float32)(info.maximum - info.minimum), 0, 1);
+    } else {
+        gamepad->axes[axis] = clamp((float32)(event.value - info.minimum) / (float32)(info.maximum - info.minimum) * 2.0 - 1.0, -1, 1);
+    }
+    if (axis == GAMEPAD_AXIS_LEFT_TRIGGER) {
+        if (event.value > info.flat)
+            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_L2);
+        else
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_L2);
+    } else if (axis == GAMEPAD_AXIS_RIGHT_TRIGGER) {
+        if (event.value > info.flat)
+            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_R2);
+        else
+            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_R2);
+    }
+}
+
+static void setButton(Gamepad *gamepad, struct input_event event) {
+    GamepadButton button = evdevButton2MinoButton(event.code);
+    if (button == GAMEPAD_BUTTON_INVALID) return;
+    if (event.value > 0) {
+        gamepad->buttons = setBit(gamepad->buttons, button);
+    } else {
+        gamepad->buttons = unsetBit(gamepad->buttons, button);
+    }
+}
+
+static void setRumble(Gamepad *gamepad) {
+    gamepad->native->rumble.type = FF_RUMBLE;
+    gamepad->native->rumble.replay.length = 0xFFFF;
+    gamepad->native->rumble.u.rumble = (struct ff_rumble_effect){
+        .strong_magnitude = (int32)(gamepad->leftMotor * 0xFFFF),
+        .weak_magnitude = (int32)(gamepad->rightMotor * 0xFFFF),
+    };
+    if (ioctl(gamepad->native->fileDescriptor, EVIOCSFF, &gamepad->native->rumble) < 0) {
+        gamepad->native->rumble.id = -1;
+        if (ioctl(gamepad->native->fileDescriptor, EVIOCSFF, &gamepad->native->rumble) < 0) {
+            return;
+        }
+    };
+    struct input_event event = {
+        .type = EV_FF,
+        .code = gamepad->native->rumble.id,
+        .value = 1,
+    };
+    if(write(gamepad->native->fileDescriptor, &event, sizeof(event)) < 0) {
+        // This if statement is to remove a warning. We don't really need to do
+        // anything if write fails anyway. We'll just ignore it.
+    };
+}
+
+static void updateControllers(MinoWindow *window) {
+    Gamepad *gamepad;
+    struct input_event events[8];
+    for (int i = 0; i < window->gamepads.len; i++) {
+        gamepad = GamepadListGet(&window->gamepads, i);
+        if (gamepad->connected == false) continue;
+        while (true) {
+            int32 bytesRead = read(gamepad->native->fileDescriptor, &events, sizeof(events));
+            if (bytesRead == -1) break;
+            for (int32 i = 0; (i + 1) * (int32)sizeof(struct input_event) < bytesRead; i++) {
+                switch (events[i].type) {
+                    case EV_ABS: {
+                        setAxis(gamepad, events[i]);
+                    } break;
+                    case EV_KEY: {
+                        setButton(gamepad, events[i]);
+                    } break;
+                }
+            }
+        }
+        if (gamepad->leftMotor != gamepad->pLeftMotor || gamepad->rightMotor != gamepad->pRightMotor) {
+            setRumble(gamepad);
+            gamepad->pLeftMotor = gamepad->leftMotor;
+            gamepad->pRightMotor = gamepad->rightMotor;
         }
     }
 }
@@ -681,6 +854,8 @@ bool WindowUpdate(MinoWindow *window) {
     WindowNative *native = window->native;
 
     resetInputState(window);
+    refreshControllers(window);
+    updateControllers(window);
     while (XPending(native->xDisplay)) {
         XNextEvent(native->xDisplay, &event);
         switch (event.type) {
@@ -746,10 +921,8 @@ bool WindowUpdate(MinoWindow *window) {
             case KeyRelease: {
                 KeySym keySymbol = XkbKeycodeToKeysym(native->xDisplay, event.xkey.keycode, 0, 0);
                 Key key = XKey2MinoKey(keySymbol);
-                if (key == KEY_INVALID) {
-                    println("Unhandled keycode: %d", key);
-                    break;
-                }
+                if (key == KEY_INVALID) break;
+
                 window->keyPressed[key] = event.type == KeyPress;
 
                 if (key == KEY_LEFT_CONTROL || key == KEY_RIGHT_CONTROL)
@@ -771,9 +944,9 @@ bool WindowUpdate(MinoWindow *window) {
                     (bitSet(event.xkey.state, Mod5MapIndex) ? MOD_SCROLL_LOCK : 0);
 
                 if (event.type == KeyPress) {
-                    char buffer[2];
+                    char buffer[sizeof(rune)];
                     if (XLookupString(&event.xkey, buffer, sizeof(buffer), &keySymbol, NULL) > 0) {
-                        mbstowcs(&window->keyChar, buffer, sizeof(window->keyChar));
+                        mbstowcs(&window->keyChar, buffer, 1);
                     };
                 }
             } break;
@@ -785,7 +958,6 @@ bool WindowUpdate(MinoWindow *window) {
             } break;
         }
     }
-    refreshControllers(window);
     return true;
 }
 
@@ -799,9 +971,9 @@ void WindowClose(MinoWindow *window) {
             close(gamepad->native->fileDescriptor);
         }
         if (gamepad->native != nil) {
-            if (gamepad->native->deviceNode != nil) {
-                free(gamepad->native->deviceNode);
-                gamepad->native->deviceNode = nil;
+            if (gamepad->native->devicePath != nil) {
+                free(gamepad->native->devicePath);
+                gamepad->native->devicePath = nil;
             }
             free(gamepad->native);
             gamepad->native = nil;
