@@ -7,6 +7,7 @@
 #include "graphics.h"
 #include "keyboard.h"
 #include "mouse.h"
+#include "types.h"
 #include "utils.h"
 #include "window.h"
 
@@ -51,6 +52,7 @@ int main(void) {
     // Aff3Print(aff3);
     while (WindowUpdate(&window)) {
         int64 begin = WindowTime();
+        // if (window.gamepads.len > 0) break;
 
         // int availableAudio = AudioAvailable(&audio);
         // if (availableAudio > 0) {
@@ -89,24 +91,14 @@ int main(void) {
 
         print("Mouse: { X: %d, Y: %d }\r", window.mouseX, window.mouseY);
 
-        // Gamepad *gamepad = WindowGetFirstConnectedGamepad(&window);
-        // if (gamepad && gamepad->connected) {
-        //     bool APressed = GamepadButtonPressed(gamepad, GAMEPAD_A);
-        //     bool BPressed = GamepadButtonPressed(gamepad, GAMEPAD_B);
-        //     bool XPressed = GamepadButtonPressed(gamepad, GAMEPAD_X);
-        //     bool YPressed = GamepadButtonPressed(gamepad, GAMEPAD_Y);
-        //     println("Gamepad connected: (Buttons: %s, %s, %s, %s), Left stick: (X: % .6f, Y: % .6f), Right stick: (X: % .6f, Y: % .6f)",
-        //         APressed ? "A" : " ",
-        //         BPressed ? "B" : " ",
-        //         XPressed ? "X" : " ",
-        //         YPressed ? "Y" : " ",
-        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_X),
-        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_Y),
-        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_X),
-        //         GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_Y));
-        // } else {
-        //     println("No gamepads connected");
-        // }
+        Gamepad *gamepad;
+        for (int i = 0, l = GamepadCount(&window); i < l; i++) {
+            gamepad = WindowGetGamepad(&window, i);
+            if (gamepad->connected == false) continue;
+            GamepadSetVibration(gamepad,
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_TRIGGER),
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_TRIGGER));
+        }
 
         // GraphicsClear(&window);
         // GraphicsBegin(&window);
@@ -127,7 +119,6 @@ int main(void) {
             WindowSleep(1000 / 60 - (now - begin));
         }
     }
-
     // GraphicsClose(&window);
     // AudioClose(&audio);
     WindowClose(&window);

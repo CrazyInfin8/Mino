@@ -2,6 +2,7 @@
 #define Gamepad_H
 
 #include "types.h"
+#include "list.h"
 
 typedef struct Window Window;
 
@@ -71,6 +72,7 @@ typedef enum PACK_ENUM GamepadButton {
     // `GAMEPAD_BUTTON_COUNT` is not a gamepad button. It denotes the number of
     // gamepad buttons available to check.
     GAMEPAD_BUTTON_COUNT,
+    GAMEPAD_BUTTON_INVALID,
 } GamepadButton;
 
 // `GamepadAxis` represents an analog axis on a standard gamepad controller.
@@ -103,16 +105,24 @@ typedef struct Gamepad {
     uint32 pButtons;
 
     float32 leftMotor;
+    float32 pLeftMotor;
     float32 rightMotor;
+    float32 pRightMotor;
 
     int playerID;
     GamepadNative* native;
 } Gamepad;
 
+DecList(Gamepad, GamepadList);
+
 // `WindowGetGamepad` retrieves a players gamepad given their playerID (most
 // often 1-4).
 //
 // If the playerID is more than supported, this function returns `nil`.
+//
+// Note: The returned pointer is still owned by Mino and it's location can be
+// changed. Instead, you may want to hold onto the playerID and retrieve the
+// players gamepad on each update.
 Gamepad* WindowGetGamepad(Window* window, int playerID);
 
 // `WindowGetFirstConnectedGamepad` attempts to retrieve the first gamepad that
@@ -120,7 +130,15 @@ Gamepad* WindowGetGamepad(Window* window, int playerID);
 //
 // If no gamepads have been connected, this returns `nil`. The gamepad returned
 // can also disconnect, but this function will still return that gamepad.
+//
+// Note: The returned pointer is still owned by Mino and it's location can be
+// changed. 
 Gamepad* WindowGetFirstConnectedGamepad(Window* window);
+
+// `GamepadCount` returns the number of gamepads the window is keeping track of.
+//
+// Not all gamepads counted may be connected.
+int GamepadCount(Window *window);
 
 // `GamepadConnected` checks if the current gamepad is connected.
 bool GamepadConnected(Gamepad* gamepad);
@@ -160,6 +178,6 @@ float32 GamepadAxisValue(Gamepad* gamepad, GamepadAxis axis);
 // The left and right vibration motor may not be the same. For example, on XBox
 // controllers and PS4 DualShocks, the left motor is for low frequency
 // vibrations while the right motor is for high frequency vibrations.
-void GamepadSetVibration(float32 leftMotor, float32 rightMotor);
+void GamepadSetVibration(Gamepad* gamepad, float32 leftMotor, float32 rightMotor);
 
 #endif  // Gamepad_H
