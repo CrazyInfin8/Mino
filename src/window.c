@@ -56,3 +56,7 @@ Gamepad *WindowGetGamepad(Window *window, int playerID) {
 extern inline Gamepad *WindowGetFirstConnectedGamepad(Window *window) {
     return GamepadListGet(&window->gamepads, 0);
 }
+
+int GamepadCount(Window *window) {
+    return window->gamepads.len;
+}

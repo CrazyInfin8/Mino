@@ -113,20 +113,32 @@ typedef struct Gamepad {
     GamepadNative* native;
 } Gamepad;
 
-DecList(Gamepad, GamepadList)
+DecList(Gamepad, GamepadList);
 
-    // `WindowGetGamepad` retrieves a players gamepad given their playerID (most
-    // often 1-4).
-    //
-    // If the playerID is more than supported, this function returns `nil`.
-    Gamepad* WindowGetGamepad(Window* window, int playerID);
+// `WindowGetGamepad` retrieves a players gamepad given their playerID (most
+// often 1-4).
+//
+// If the playerID is more than supported, this function returns `nil`.
+//
+// Note: The returned pointer is still owned by Mino and it's location can be
+// changed. Instead, you may want to hold onto the playerID and retrieve the
+// players gamepad on each update.
+Gamepad* WindowGetGamepad(Window* window, int playerID);
 
 // `WindowGetFirstConnectedGamepad` attempts to retrieve the first gamepad that
 // was connected.
 //
 // If no gamepads have been connected, this returns `nil`. The gamepad returned
 // can also disconnect, but this function will still return that gamepad.
+//
+// Note: The returned pointer is still owned by Mino and it's location can be
+// changed. 
 Gamepad* WindowGetFirstConnectedGamepad(Window* window);
+
+// `GamepadCount` returns the number of gamepads the window is keeping track of.
+//
+// Not all gamepads counted may be connected.
+int GamepadCount(Window *window);
 
 // `GamepadConnected` checks if the current gamepad is connected.
 bool GamepadConnected(Gamepad* gamepad);

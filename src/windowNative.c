@@ -497,15 +497,15 @@ static Key XKey2MinoKey(int key) {
 }
 
 // `XKey2MinoKey` needs to be before `#include <linux/input.h>` because it contains defines that collide with Mino.
-#include <linux/input.h>
-#include <linux/types.h>
 #include <fcntl.h>
 #include <libudev.h>
+#include <linux/input.h>
+#include <linux/types.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <X11/XKBlib.h>
 #include <X11/Xlib.h>
-#include <sys/ioctl.h>
 
 struct WindowNative {
     Display *xDisplay;
