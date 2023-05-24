@@ -498,6 +498,8 @@ static Key XKey2MinoKey(int key) {
 
 // `XKey2MinoKey` needs to be before `#include <linux/input.h>` because it contains defines that collide with Mino.
 #include <fcntl.h>
+#include <GL/gl.h>
+#include <GL/glx.h>
 #include <libudev.h>
 #include <linux/input.h>
 #include <linux/types.h>
@@ -511,8 +513,11 @@ struct WindowNative {
     Display *xDisplay;
     Window xWindow;
     Atom deleteWindow;
+    XVisualInfo *visualInfo;
     struct udev *udev;
     struct udev_monitor *monitor;
+
+    GLXContext glContext;
 };
 
 struct GamepadNative {
@@ -615,7 +620,6 @@ foundGamepad:;
     }
     gamepad->native->fileDescriptor = fd;
     gamepad->connected = true;
-    
 }
 
 static void disconnectController(MinoWindow *window, const char *devicePath) {
@@ -633,7 +637,7 @@ static void disconnectController(MinoWindow *window, const char *devicePath) {
     gamepad->native->fileDescriptor = 0;
     gamepad->connected = false;
     // just zero these out to be safe so, when a controller reconnects, none of
-    // the buttons or sticks are still held 
+    // the buttons or sticks are still held
     gamepad->buttons = 0;
     for (int i = 0; i < GAMEPAD_AXIS_COUNT; i++) {
         gamepad->axes[i] = 0;
@@ -642,26 +646,55 @@ static void disconnectController(MinoWindow *window, const char *devicePath) {
 
 bool WindowInit(MinoWindow *window, WindowConfig config) {
     Display *xDisplay = XOpenDisplay(nil);
-    if (xDisplay == nil) {
-        return false;
-    }
+    if (xDisplay == nil) return false;
+
+    XVisualInfo *visualInfo = glXChooseVisual(
+        xDisplay,
+        0,
+        (GLint[]){
+            GLX_RGBA,
+            GLX_DEPTH_SIZE,
+            24,
+            GLX_DOUBLEBUFFER,
+            None,
+        });
+
+    if (visualInfo == nil) return false;
+
+    Window root = DefaultRootWindow(xDisplay);
+
+    Colormap colormap = XCreateColormap(xDisplay, root, visualInfo->visual, AllocNone);
 
     int screenID = DefaultScreen(xDisplay);
 
-    Window xWindow = XCreateSimpleWindow(
+    XSetWindowAttributes windowAttributes = {
+        .colormap = colormap,
+        .event_mask = ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+        .background_pixel = WhitePixel(xDisplay, screenID),
+        .border_pixel = BlackPixel(xDisplay, screenID),
+        .override_redirect = True,
+    };
+
+    Window xWindow = XCreateWindow(
         xDisplay,
-        RootWindow(xDisplay, screenID),
-        10, 10, config.width, config.height, 1,
-        BlackPixel(xDisplay, screenID),
-        WhitePixel(xDisplay, screenID));
+        root,
+        0, 0, config.width, config.height,
+        0,
+        visualInfo->depth,
+        InputOutput,
+        visualInfo->visual,
+        CWColormap | CWEventMask,
+        &windowAttributes);
+
+    if (xWindow == 0) return false;
 
     Atom deleteWindowAtom = XInternAtom(xDisplay, "WM_DELETE_WINDOW", false);
     XSetWMProtocols(xDisplay, xWindow, &deleteWindowAtom, 1);
 
-    XSelectInput(xDisplay, xWindow, ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
-
     XMapWindow(xDisplay, xWindow);
     XSync(xDisplay, xWindow);
+
+    XStoreName(xDisplay, xWindow, config.title);
 
     struct udev *udev = udev_new();
     if (udev == nil) {
@@ -675,6 +708,7 @@ bool WindowInit(MinoWindow *window, WindowConfig config) {
         .xDisplay = xDisplay,
         .xWindow = xWindow,
         .deleteWindow = deleteWindowAtom,
+        .visualInfo = visualInfo,
         .udev = udev,
     };
     GamepadListInit(&window->gamepads, 0, 4);
@@ -815,7 +849,7 @@ static void setRumble(Gamepad *gamepad) {
         .code = gamepad->native->rumble.id,
         .value = 1,
     };
-    if(write(gamepad->native->fileDescriptor, &event, sizeof(event)) < 0) {
+    if (write(gamepad->native->fileDescriptor, &event, sizeof(event)) < 0) {
         // This if statement is to remove a warning. We don't really need to do
         // anything if write fails anyway. We'll just ignore it.
     };
@@ -856,9 +890,36 @@ bool WindowUpdate(MinoWindow *window) {
     resetInputState(window);
     refreshControllers(window);
     updateControllers(window);
+    if (window->native->glContext) {
+        glXMakeCurrent(
+            window->native->xDisplay,
+            window->native->xWindow,
+            window->native->glContext);
+        glXSwapBuffers(
+            window->native->xDisplay,
+            window->native->xWindow);
+    }
     while (XPending(native->xDisplay)) {
         XNextEvent(native->xDisplay, &event);
         switch (event.type) {
+            case Expose: {
+                if (window->native->glContext) {
+                    XWindowAttributes windowAttributes;
+                    XGetWindowAttributes(
+                        window->native->xDisplay,
+                        window->native->xWindow,
+                        &windowAttributes);
+
+                    window->width = windowAttributes.width;
+                    window->height = windowAttributes.height;
+
+                    glViewport(
+                        0, 0,
+                        windowAttributes.width,
+                        windowAttributes.height);
+                }
+            } break;
+
             case MotionNotify: {
                 window->mouseX = event.xmotion.x;
                 window->mouseY = event.xmotion.y;
@@ -962,6 +1023,7 @@ bool WindowUpdate(MinoWindow *window) {
 }
 
 void WindowClose(MinoWindow *window) {
+    XFree(window->native->visualInfo);
     XDestroyWindow(window->native->xDisplay, window->native->xWindow);
     XCloseDisplay(window->native->xDisplay);
     Gamepad *gamepad;
@@ -998,6 +1060,43 @@ void WindowSleep(int64 milliseconds) {
     time.tv_sec = milliseconds / 1000;
     time.tv_nsec = (milliseconds % 1000) * 1000000;
     nanosleep(&time, nil);
+}
+
+bool GraphicsInit(MinoWindow *window) {
+    GLXContext glContext = glXCreateContext(
+        window->native->xDisplay,
+        window->native->visualInfo,
+        nil,
+        GL_TRUE);
+
+    if (glContext == nil) return false;
+
+    glXMakeCurrent(
+        window->native->xDisplay,
+        window->native->xWindow,
+        glContext);
+
+    glEnable(GL_DEPTH_TEST);
+
+    window->native->glContext = glContext;
+    return true;
+}
+
+void GraphicsMakeCurrent(MinoWindow *window) {
+    glXMakeCurrent(
+        window->native->xDisplay,
+        window->native->xWindow,
+        window->native->glContext);
+}
+
+void GraphicsClose(MinoWindow *window) {
+    if (window->native->glContext == nil) return;
+
+    glXDestroyContext(
+        window->native->xDisplay,
+        window->native->glContext);
+
+    window->native->glContext = nil;
 }
 
 #endif

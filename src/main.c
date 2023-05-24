@@ -1,4 +1,5 @@
 #include <math.h>
+#include <GL/gl.h>
 
 #include "aff3.h"
 #include "audio.h"
@@ -42,11 +43,12 @@ int main(void) {
     //     WindowClose(&window);
     //     return 1;
     // }
-    // if (GraphicsInit(&window) == false) {
-    //     println("Could not open Graphics");
-    //     AudioClose(&audio);
-    //     WindowClose(&window);
-    // }
+    if (GraphicsInit(&window) == false) {
+        println("Could not open Graphics");
+        // AudioClose(&audio);
+        WindowClose(&window);
+        return 1;
+    }
 
     // Aff3 aff3 = Aff3Identity();
     // Aff3Print(aff3);
@@ -100,26 +102,27 @@ int main(void) {
                 GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_TRIGGER));
         }
 
-        // GraphicsClear(&window);
-        // GraphicsBegin(&window);
-        // {
-        //     GraphicsAddColor(ColorHex(0xFFFF0000));
-        //     GraphicsAddVertex((float32[3]){0, 1, 0});
+        GraphicsMakeCurrent(&window);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBegin(GL_TRIANGLES);
+        {
+            glColor4ub(0xFF, 0x00, 0x00, 0xFF);
+            glVertex3f(0, 1, 0);
 
-        //     GraphicsAddColor(ColorHex(0xFF00FF00));
-        //     GraphicsAddVertex((float32[3]){1, -1, 0});
+            glColor4ub(0x00, 0xFF, 0x00, 0xFF);
+            glVertex3f(1, -1, 0);
 
-        //     GraphicsAddColor(ColorHex(0xFF0000FF));
-        //     GraphicsAddVertex((float32[3]){-1, -1, 0});
-        // }
-        // GraphicsEnd();
+            glColor4ub(0x00, 0x00, 0xFF, 0xFF);
+            glVertex3f(-1, -1, 0);
+        }
+        glEnd();
 
         int64 now = WindowTime();
         if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {
             WindowSleep(1000 / 60 - (now - begin));
         }
     }
-    // GraphicsClose(&window);
+    GraphicsClose(&window);
     // AudioClose(&audio);
     WindowClose(&window);
     return 0;

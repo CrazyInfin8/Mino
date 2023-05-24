@@ -25,6 +25,8 @@ typedef struct Window {
     byte keyModifier;
     rune keyChar;
 
+    int width, height;
+
     int mouseX, mouseY;
     int pMouseX, pMouseY;
 

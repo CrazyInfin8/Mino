@@ -19,7 +19,7 @@ OPTIMIZE_FLAGS:=-MD -Os -s -fno-asynchronous-unwind-tables -fno-tree-loop-distri
 OPTIMIZED_EXE:=$(EXE_NAME).opt
 COMPRESSED_EXE:=$(EXE_NAME).upx
 ifeq ($(UNAME),Linux)
-LIBS=-lX11 -lm -ludev#-lasound
+LIBS=-lX11 -lm -ludev -lGL#-lasound
 PLATFORM:=PLATFORM_Linux
 endif # UNAME == Linux
 endif # OS != Windows_NT
@@ -51,9 +51,9 @@ $(COMPRESSED_EXE): $(OPTIMIZED_EXE)
 	upx --ultra-brute -o$(COMPRESSED_EXE) $(OPTIMIZED_EXE)
 
 size: $(EXE) $(OPTIMIZED_EXE) $(COMPRESSED_EXE) .PHONY
-	@printf "Unoptimized Size: %'10d\n" `wc -c < $(EXE)`
-	@printf "Optimized Size:   %'10d\n" `wc -c < $(OPTIMIZED_EXE)`
-	@printf "Compressed Size:  %'10d\n" `wc -c < $(COMPRESSED_EXE)`
+	@echo "Unoptimized Size:" `wc -c < $(EXE) | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'`
+	@echo "Optimized Size:  " `wc -c < $(OPTIMIZED_EXE) | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'`
+	@echo "Compressed Size: " `wc -c < $(COMPRESSED_EXE) | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'`
 
 clean: .PHONY
 	rm -f $(EXE)
