@@ -19,7 +19,7 @@ OPTIMIZE_FLAGS:=-MD -Os -s -fno-asynchronous-unwind-tables -fno-tree-loop-distri
 OPTIMIZED_EXE:=$(EXE_NAME).opt
 COMPRESSED_EXE:=$(EXE_NAME).upx
 ifeq ($(UNAME),Linux)
-LIBS=-lX11 -lm -ludev -lGL#-lasound
+LIBS=-lX11 -lm -ludev -lGL -lasound
 PLATFORM:=PLATFORM_Linux
 endif # UNAME == Linux
 endif # OS != Windows_NT

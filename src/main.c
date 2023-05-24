@@ -8,6 +8,7 @@
 #include "graphics.h"
 #include "keyboard.h"
 #include "mouse.h"
+#include "synth.h"
 #include "types.h"
 #include "utils.h"
 #include "window.h"
@@ -15,22 +16,22 @@
 Window window;
 Audio audio;
 
-// typedef struct Synth {
-//     Phasor phasor;
-//     float32 notes[8];
-//     Oscillator oscillator;
-// } Synth;
+typedef struct Synth {
+    Phasor phasor;
+    float32 notes[8];
+    Oscillator oscillator;
+} Synth;
 
-// Synth synth = {
-//     .phasor = {
-//         .phaseInterval = 261.63 / AUDIO_SAMPLE_RATE,
-//     },
-//     .notes = {
-//     },
-//     .oscillator = {
-//         .type = SineOscillator,
-//     },
-// };
+Synth synth = {
+    .phasor = {
+        .phaseInterval = 261.63 / AUDIO_SAMPLE_RATE,
+    },
+    .notes = {
+    },
+    .oscillator = {
+        .type = SineOscillator,
+    },
+};
 
 int main(void) {
     println("Starting game");
@@ -38,33 +39,30 @@ int main(void) {
         println("Could not open the window");
         return 1;
     }
-    // if (AudioInit(&audio) == false) {
-    //     println("Could not open Audio");
-    //     WindowClose(&window);
-    //     return 1;
-    // }
+    if (AudioInit(&audio) == false) {
+        println("Could not open Audio");
+        WindowClose(&window);
+        return 1;
+    }
     if (GraphicsInit(&window) == false) {
         println("Could not open Graphics");
-        // AudioClose(&audio);
+        AudioClose(&audio);
         WindowClose(&window);
         return 1;
     }
 
-    // Aff3 aff3 = Aff3Identity();
-    // Aff3Print(aff3);
     while (WindowUpdate(&window)) {
         int64 begin = WindowTime();
-        // if (window.gamepads.len > 0) break;
 
-        // int availableAudio = AudioAvailable(&audio);
-        // if (availableAudio > 0) {
-        //     float32 buffer[AUDIO_BUFFER_SIZE];
-        //     // PhasorStream(&synth.phasor, buffer, AUDIO_BUFFER_SIZE);
+        int availableAudio = AudioAvailable(&audio);
+        if (availableAudio > 0) {
+            float32 buffer[AUDIO_BUFFER_SIZE];
+            PhasorStream(&synth.phasor, buffer, availableAudio);
 
-        //     // OscillatorStream(synth.oscillator, buffer, AUDIO_BUFFER_SIZE);
+            OscillatorStream(synth.oscillator, buffer, availableAudio);
 
-        //     AudioWrite(&audio, buffer, AUDIO_BUFFER_SIZE);
-        // }
+            AudioWrite(&audio, buffer, availableAudio);
+        }
 
         if (MouseJustPressed(&window, MOUSE_LEFT)) println("Left just pressed");
         if (MouseJustPressed(&window, MOUSE_RIGHT)) println("Right just pressed");
@@ -123,7 +121,7 @@ int main(void) {
         }
     }
     GraphicsClose(&window);
-    // AudioClose(&audio);
+    AudioClose(&audio);
     WindowClose(&window);
     return 0;
 }
