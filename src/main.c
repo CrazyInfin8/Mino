@@ -1,4 +1,5 @@
 #include <math.h>
+#include <GL/gl.h>
 
 #include "aff3.h"
 #include "audio.h"
@@ -7,6 +8,7 @@
 #include "graphics.h"
 #include "keyboard.h"
 #include "mouse.h"
+#include "synth.h"
 #include "types.h"
 #include "utils.h"
 #include "window.h"
@@ -14,22 +16,22 @@
 Window window;
 Audio audio;
 
-// typedef struct Synth {
-//     Phasor phasor;
-//     float32 notes[8];
-//     Oscillator oscillator;
-// } Synth;
+typedef struct Synth {
+    Phasor phasor;
+    float32 notes[8];
+    Oscillator oscillator;
+} Synth;
 
-// Synth synth = {
-//     .phasor = {
-//         .phaseInterval = 261.63 / AUDIO_SAMPLE_RATE,
-//     },
-//     .notes = {
-//     },
-//     .oscillator = {
-//         .type = SineOscillator,
-//     },
-// };
+Synth synth = {
+    .phasor = {
+        .phaseInterval = 261.63 / AUDIO_SAMPLE_RATE,
+    },
+    .notes = {
+    },
+    .oscillator = {
+        .type = SineOscillator,
+    },
+};
 
 int main(void) {
     println("Starting game");
@@ -37,32 +39,30 @@ int main(void) {
         println("Could not open the window");
         return 1;
     }
-    // if (AudioInit(&audio) == false) {
-    //     println("Could not open Audio");
-    //     WindowClose(&window);
-    //     return 1;
-    // }
-    // if (GraphicsInit(&window) == false) {
-    //     println("Could not open Graphics");
-    //     AudioClose(&audio);
-    //     WindowClose(&window);
-    // }
+    if (AudioInit(&audio) == false) {
+        println("Could not open Audio");
+        WindowClose(&window);
+        return 1;
+    }
+    if (GraphicsInit(&window) == false) {
+        println("Could not open Graphics");
+        AudioClose(&audio);
+        WindowClose(&window);
+        return 1;
+    }
 
-    // Aff3 aff3 = Aff3Identity();
-    // Aff3Print(aff3);
     while (WindowUpdate(&window)) {
         int64 begin = WindowTime();
-        // if (window.gamepads.len > 0) break;
 
-        // int availableAudio = AudioAvailable(&audio);
-        // if (availableAudio > 0) {
-        //     float32 buffer[AUDIO_BUFFER_SIZE];
-        //     // PhasorStream(&synth.phasor, buffer, AUDIO_BUFFER_SIZE);
+        int availableAudio = AudioAvailable(&audio);
+        if (availableAudio > 0) {
+            float32 buffer[AUDIO_BUFFER_SIZE];
+            PhasorStream(&synth.phasor, buffer, availableAudio);
 
-        //     // OscillatorStream(synth.oscillator, buffer, AUDIO_BUFFER_SIZE);
+            OscillatorStream(synth.oscillator, buffer, availableAudio);
 
-        //     AudioWrite(&audio, buffer, AUDIO_BUFFER_SIZE);
-        // }
+            AudioWrite(&audio, buffer, availableAudio);
+        }
 
         if (MouseJustPressed(&window, MOUSE_LEFT)) println("Left just pressed");
         if (MouseJustPressed(&window, MOUSE_RIGHT)) println("Right just pressed");
@@ -100,27 +100,28 @@ int main(void) {
                 GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_TRIGGER));
         }
 
-        // GraphicsClear(&window);
-        // GraphicsBegin(&window);
-        // {
-        //     GraphicsAddColor(ColorHex(0xFFFF0000));
-        //     GraphicsAddVertex((float32[3]){0, 1, 0});
+        GraphicsMakeCurrent(&window);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBegin(GL_TRIANGLES);
+        {
+            glColor4ub(0xFF, 0x00, 0x00, 0xFF);
+            glVertex3f(0, 1, 0);
 
-        //     GraphicsAddColor(ColorHex(0xFF00FF00));
-        //     GraphicsAddVertex((float32[3]){1, -1, 0});
+            glColor4ub(0x00, 0xFF, 0x00, 0xFF);
+            glVertex3f(1, -1, 0);
 
-        //     GraphicsAddColor(ColorHex(0xFF0000FF));
-        //     GraphicsAddVertex((float32[3]){-1, -1, 0});
-        // }
-        // GraphicsEnd();
+            glColor4ub(0x00, 0x00, 0xFF, 0xFF);
+            glVertex3f(-1, -1, 0);
+        }
+        glEnd();
 
         int64 now = WindowTime();
         if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {
             WindowSleep(1000 / 60 - (now - begin));
         }
     }
-    // GraphicsClose(&window);
-    // AudioClose(&audio);
+    GraphicsClose(&window);
+    AudioClose(&audio);
     WindowClose(&window);
     return 0;
 }

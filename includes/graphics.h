@@ -19,37 +19,22 @@ typedef struct Color {
 // `ColorHex` creates a Color object using a hexadecimal value in ARGB format.
 Color ColorHex(const uint32 color);
 
-// `GraphicsInit` initializes the platforms graphics API on the current window.
-// It returns true when successful or false if there was an error.
+// `GraphicsInit` creates an OpenGL context for the current window. It returns
+// true when successful or false if there was an error.
 //
-// Remember to close the graphics api by calling `GraphicsClose`.
+// Remember to close the graphics api by calling `GraphicsClose`. (This should
+// be done before disposing the window)
 bool GraphicsInit(Window* window);
 
-// `GraphicsClose` cleans up the graphics api.
+// `GraphicsClose` frees the OpenGL context for this window.
 //
 // It should be called when you are finished drawing graphics on this window.
 void GraphicsClose(Window* window);
 
-// `GraphicsClear` clears the screen of graphics that have been drawn.
-void GraphicsClear(Window* window);
-
-// `GraphicsBegin` prepares the graphics API to draw a series of vertices.
+// `GraphicsMakeCurrent` makes the OpenGL api use this window and its context.
 //
-// It should be followed by a call to `GraphicsEnd` when you finished drawing
-// the frame.
-void GraphicsBegin(Window* window);
-
-// `GraphicsEnd` should be called after `GraphicsBegin` to signify that you are
-// done drawing this frame.
-void GraphicsEnd();
-
-// `GraphicsAddVertex` adds a vertex to the platforms graphics API.
-//
-// You should call `GraphicsBegin` before you call `GraphicsAddVertex` to
-// prepare the graphics API for drawing.
-void GraphicsAddVertex(float32 vertex[3]);
-
-// `GraphicsAddColor` adds a color vertex to the platforms graphics API.
-void GraphicsAddColor(Color color);
+// This should be called before doing OpenGL operations to ensure that OpenGL
+// functions target this window and context
+void GraphicsMakeCurrent(Window* window);
 
 #endif  // Graphics_H
