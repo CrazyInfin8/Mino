@@ -1,5 +1,4 @@
 #include <math.h>
-#include <GL/gl.h>
 
 #include "aff3.h"
 #include "audio.h"
@@ -12,6 +11,8 @@
 #include "types.h"
 #include "utils.h"
 #include "window.h"
+
+#include <GL/gl.h>
 
 Window window;
 Audio audio;

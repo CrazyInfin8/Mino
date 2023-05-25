@@ -37,7 +37,7 @@ enum PACK_ENUM KeyModifier {
     MOD_ALT = (1 << 2),
     MOD_WIN = (1 << 3),
     MOD_CAPS_LOCK = (1 << 4),
-    MOD_SCROLL_LOCK = (1 <<5),
+    MOD_SCROLL_LOCK = (1 << 5),
     MOD_NUM_LOCK = (1 << 6),
 };
 
@@ -164,7 +164,7 @@ enum PACK_ENUM Key {
     // available to check.
     KEY_COUNT,
     // Used internally to denote an unsupported key code.
-     
+
     KEY_INVALID = ~0,
 };
 

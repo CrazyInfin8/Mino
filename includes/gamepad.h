@@ -72,7 +72,7 @@ typedef enum PACK_ENUM GamepadButton {
     // `GAMEPAD_BUTTON_COUNT` is not a gamepad button. It denotes the number of
     // gamepad buttons available to check.
     GAMEPAD_BUTTON_COUNT,
-    GAMEPAD_BUTTON_INVALID,
+    GAMEPAD_BUTTON_INVALID = ~0,
 } GamepadButton;
 
 // `GamepadAxis` represents an analog axis on a standard gamepad controller.
