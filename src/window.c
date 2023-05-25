@@ -50,10 +50,13 @@ rune KeyGetChar(Window *window) {
 }
 
 Gamepad *WindowGetGamepad(Window *window, int playerID) {
-    if (playerID < 0 || playerID > window->gamepadCount) return nil;
-    return &window->gamepads[playerID];
+    return GamepadListGet(&window->gamepads, playerID);
 }
 
 extern inline Gamepad *WindowGetFirstConnectedGamepad(Window *window) {
-    return window->firstGamepad;
+    return GamepadListGet(&window->gamepads, 0);
+}
+
+int GamepadCount(Window *window) {
+    return window->gamepads.len;
 }

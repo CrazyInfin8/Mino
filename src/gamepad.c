@@ -1,7 +1,10 @@
 #include "gamepad.h"
+#include "list.h"
 #include "types.h"
 #include "utils.h"
 #include "window.h"
+
+DefList(Gamepad, GamepadList);
 
 bool GamepadConnected(Gamepad* gamepad) {
     return gamepad->connected;
@@ -35,4 +38,9 @@ float32 GamepadAxisValue(Gamepad* gamepad, GamepadAxis axis) {
         return gamepad->axes[axis];
     }
     return false;
+}
+
+void GamepadSetVibration(Gamepad* gamepad, float32 leftMotor, float32 rightMotor) {
+    gamepad->leftMotor = clamp(leftMotor, 0, 1);
+    gamepad->rightMotor = clamp(rightMotor, 0, 1);
 }

@@ -35,6 +35,11 @@ typedef struct Audio {
 // Remember to close finished `Audio` interfaces with `AudioClose`
 bool AudioInit(Audio* audio);
 
+// `AudioClose` cleans up this audio interface.
+//
+// It should be called when you are finished using this audio interface.
+void AudioClose(Audio* audio);
+
 // `AudioAvailable` returns the number of samples that are available to be
 // written.
 int AudioAvailable(Audio* audio);
@@ -43,9 +48,5 @@ int AudioAvailable(Audio* audio);
 // `length` is the number of samples to be written.
 void AudioWrite(Audio* audio, float32* wave, int length);
 
-// `AudioClose` cleans up this audio interface.
-//
-// It should be called when you are finished using this audio interface.
-void AudioClose(Audio* audio);
 
 #endif  // Audio_H

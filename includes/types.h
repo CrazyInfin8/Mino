@@ -23,4 +23,5 @@ typedef double float64;
 
 #define nil ((void*)0)
 
+#define PACK_ENUM __attribute__ ((__packed__))
 #endif // Types_H

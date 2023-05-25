@@ -31,16 +31,18 @@ bool KeyModifierSet(Window* window, KeyModifier modifier);
 // would produce.
 rune KeyGetChar(Window* window);
 
-enum KeyModifier {
+enum PACK_ENUM KeyModifier {
     MOD_CONTROL = (1 << 0),
     MOD_SHIFT = (1 << 1),
-    MOD_WIN = (1 << 2),
-    MOD_CAPS_LOCK = (1 << 3),
-    MOD_SCROLL_LOCK = (1 << 4),
-    MOD_NUM_LOCK = (1 << 5),
+    MOD_ALT = (1 << 2),
+    MOD_WIN = (1 << 3),
+    MOD_CAPS_LOCK = (1 << 4),
+    MOD_SCROLL_LOCK = (1 << 5),
+    MOD_NUM_LOCK = (1 << 6),
 };
 
-enum Key { KEY_A,
+enum PACK_ENUM Key {
+    KEY_A,
     KEY_B,
     KEY_C,
     KEY_D,
@@ -55,7 +57,7 @@ enum Key { KEY_A,
     KEY_M,
     KEY_N,
     KEY_O,
-    KEY_p,
+    KEY_P,
     KEY_Q,
     KEY_R,
     KEY_S,
@@ -161,6 +163,9 @@ enum Key { KEY_A,
     // `KEY_COUNT` is not a key code. It denotes the number of key codes
     // available to check.
     KEY_COUNT,
+    // Used internally to denote an unsupported key code.
+
+    KEY_INVALID = ~0,
 };
 
-#endif // Keyboard_H
+#endif  // Keyboard_H

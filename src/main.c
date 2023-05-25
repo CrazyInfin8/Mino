@@ -1,5 +1,4 @@
 #include <math.h>
-#include <processthreadsapi.h>
 
 #include "aff3.h"
 #include "audio.h"
@@ -8,28 +7,32 @@
 #include "graphics.h"
 #include "keyboard.h"
 #include "mouse.h"
+#include "synth.h"
+#include "types.h"
 #include "utils.h"
 #include "window.h"
+
+#include <GL/gl.h>
 
 Window window;
 Audio audio;
 
-// typedef struct Synth {
-//     Phasor phasor;
-//     float32 notes[8];
-//     Oscillator oscillator;
-// } Synth;
+typedef struct Synth {
+    Phasor phasor;
+    float32 notes[8];
+    Oscillator oscillator;
+} Synth;
 
-// Synth synth = {
-//     .phasor = {
-//         .phaseInterval = 261.63 / AUDIO_SAMPLE_RATE,
-//     },
-//     .notes = {
-//     },
-//     .oscillator = {
-//         .type = SineOscillator,
-//     },
-// };
+Synth synth = {
+    .phasor = {
+        .phaseInterval = 261.63 / AUDIO_SAMPLE_RATE,
+    },
+    .notes = {
+    },
+    .oscillator = {
+        .type = SineOscillator,
+    },
+};
 
 int main(void) {
     println("Starting game");
@@ -46,62 +49,78 @@ int main(void) {
         println("Could not open Graphics");
         AudioClose(&audio);
         WindowClose(&window);
+        return 1;
     }
 
-    // Aff3 aff3 = Aff3Identity();
-    // Aff3Print(aff3);
     while (WindowUpdate(&window)) {
         int64 begin = WindowTime();
 
-        // int availableAudio = AudioAvailable(&audio);
-        // if (availableAudio > 0) {
-        //     float32 buffer[AUDIO_BUFFER_SIZE];
-        //     // PhasorStream(&synth.phasor, buffer, AUDIO_BUFFER_SIZE);
+        int availableAudio = AudioAvailable(&audio);
+        if (availableAudio > 0) {
+            float32 buffer[AUDIO_BUFFER_SIZE];
+            PhasorStream(&synth.phasor, buffer, availableAudio);
 
-        //     // OscillatorStream(synth.oscillator, buffer, AUDIO_BUFFER_SIZE);
+            OscillatorStream(synth.oscillator, buffer, availableAudio);
 
-        //     AudioWrite(&audio, buffer, AUDIO_BUFFER_SIZE);
-        // }
-
-        Gamepad *gamepad = WindowGetFirstConnectedGamepad(&window);
-        if (gamepad && gamepad->connected) {
-            bool APressed = GamepadButtonPressed(gamepad, GAMEPAD_A);
-            bool BPressed = GamepadButtonPressed(gamepad, GAMEPAD_B);
-            bool XPressed = GamepadButtonPressed(gamepad, GAMEPAD_X);
-            bool YPressed = GamepadButtonPressed(gamepad, GAMEPAD_Y);
-            println("Gamepad connected: (Buttons: %s, %s, %s, %s), Left stick: (X: % .6f, Y: % .6f), Right stick: (X: % .6f, Y: % .6f)",
-                APressed ? "A" : " ",
-                BPressed ? "B" : " ",
-                XPressed ? "X" : " ",
-                YPressed ? "Y" : " ",
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_X),
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_STICK_Y),
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_X),
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_STICK_Y));
-        } else {
-            println("No gamepads connected");
+            AudioWrite(&audio, buffer, availableAudio);
         }
 
-        GraphicsClear(&window);
-        GraphicsBegin(&window);
+        if (MouseJustPressed(&window, MOUSE_LEFT)) println("Left just pressed");
+        if (MouseJustPressed(&window, MOUSE_RIGHT)) println("Right just pressed");
+        if (MouseJustPressed(&window, MOUSE_MIDDLE)) println("Middle just pressed");
+        if (MouseJustPressed(&window, MOUSE_FORWARD)) println("Forward just pressed");
+        if (MouseJustPressed(&window, MOUSE_BACK)) println("Back just pressed");
+
+        if (MouseJustReleased(&window, MOUSE_LEFT)) println("Left just released");
+        if (MouseJustReleased(&window, MOUSE_RIGHT)) println("Right just released");
+        if (MouseJustReleased(&window, MOUSE_MIDDLE)) println("Middle just released");
+        if (MouseJustReleased(&window, MOUSE_FORWARD)) println("Forward just released");
+        if (MouseJustReleased(&window, MOUSE_BACK)) println("Back just released");
+
+        if (window.scrollX != 0 || window.scrollY != 0) println("Scroll = { X: %d, Y: %d }", window.scrollX, window.scrollY);
+
+        for (int i = 0; i < KEY_COUNT; i++) {
+            if (KeyJustPressed(&window, i)) {
+                println("Key %d just pressed", i);
+            }
+            if (KeyJustReleased(&window, i)) {
+                println("Key %d just released", i);
+            }
+        }
+        rune c = KeyGetChar(&window);
+        if (c) println("You typed: %c", c);
+
+        print("Mouse: { X: %d, Y: %d }\r", window.mouseX, window.mouseY);
+
+        Gamepad *gamepad;
+        for (int i = 0, l = GamepadCount(&window); i < l; i++) {
+            gamepad = WindowGetGamepad(&window, i);
+            if (gamepad->connected == false) continue;
+            GamepadSetVibration(gamepad,
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_TRIGGER),
+                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_TRIGGER));
+        }
+
+        GraphicsMakeCurrent(&window);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBegin(GL_TRIANGLES);
         {
-            GraphicsAddColor(ColorHex(0xFFFF0000));
-            GraphicsAddVertex((float32[3]){0, 1, 0});
+            glColor4ub(0xFF, 0x00, 0x00, 0xFF);
+            glVertex3f(0, 1, 0);
 
-            GraphicsAddColor(ColorHex(0xFF00FF00));
-            GraphicsAddVertex((float32[3]){1, -1, 0});
+            glColor4ub(0x00, 0xFF, 0x00, 0xFF);
+            glVertex3f(1, -1, 0);
 
-            GraphicsAddColor(ColorHex(0xFF0000FF));
-            GraphicsAddVertex((float32[3]){-1, -1, 0});
+            glColor4ub(0x00, 0x00, 0xFF, 0xFF);
+            glVertex3f(-1, -1, 0);
         }
-        GraphicsEnd();
+        glEnd();
 
         int64 now = WindowTime();
         if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {
             WindowSleep(1000 / 60 - (now - begin));
         }
     }
-
     GraphicsClose(&window);
     AudioClose(&audio);
     WindowClose(&window);
