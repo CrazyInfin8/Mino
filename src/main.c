@@ -40,11 +40,11 @@ int main(void) {
         println("Could not open the window");
         return 1;
     }
-    if (AudioInit(&audio) == false) {
-        println("Could not open Audio");
-        WindowClose(&window);
-        return 1;
-    }
+    // if (AudioInit(&audio) == false) {
+    //     println("Could not open Audio");
+    //     WindowClose(&window);
+    //     return 1;
+    // }
     if (GraphicsInit(&window) == false) {
         println("Could not open Graphics");
         AudioClose(&audio);
@@ -55,31 +55,31 @@ int main(void) {
     while (WindowUpdate(&window)) {
         int64 begin = WindowTime();
 
-        int availableAudio = AudioAvailable(&audio);
-        if (availableAudio > 0) {
-            float32 buffer[AUDIO_BUFFER_SIZE];
-            PhasorStream(&synth.phasor, buffer, availableAudio);
+        // int availableAudio = AudioAvailable(&audio);
+        // if (availableAudio > 0) {
+        //     float32 buffer[AUDIO_BUFFER_SIZE];
+        //     PhasorStream(&synth.phasor, buffer, availableAudio);
 
-            OscillatorStream(synth.oscillator, buffer, availableAudio);
+        //     OscillatorStream(synth.oscillator, buffer, availableAudio);
 
-            AudioWrite(&audio, buffer, availableAudio);
-        }
+        //     AudioWrite(&audio, buffer, availableAudio);
+        // }
 
-        if (MouseJustPressed(&window, MOUSE_LEFT)) println("Left just pressed");
-        if (MouseJustPressed(&window, MOUSE_RIGHT)) println("Right just pressed");
-        if (MouseJustPressed(&window, MOUSE_MIDDLE)) println("Middle just pressed");
-        if (MouseJustPressed(&window, MOUSE_FORWARD)) println("Forward just pressed");
-        if (MouseJustPressed(&window, MOUSE_BACK)) println("Back just pressed");
+        if (MouseJustPressed(&window, MouseButton_Left)) println("Left just pressed");
+        if (MouseJustPressed(&window, MouseButton_Right)) println("Right just pressed");
+        if (MouseJustPressed(&window, MouseButton_Middle)) println("Middle just pressed");
+        if (MouseJustPressed(&window, MouseButton_Forward)) println("Forward just pressed");
+        if (MouseJustPressed(&window, MouseButton_Back)) println("Back just pressed");
 
-        if (MouseJustReleased(&window, MOUSE_LEFT)) println("Left just released");
-        if (MouseJustReleased(&window, MOUSE_RIGHT)) println("Right just released");
-        if (MouseJustReleased(&window, MOUSE_MIDDLE)) println("Middle just released");
-        if (MouseJustReleased(&window, MOUSE_FORWARD)) println("Forward just released");
-        if (MouseJustReleased(&window, MOUSE_BACK)) println("Back just released");
+        if (MouseJustReleased(&window, MouseButton_Left)) println("Left just released");
+        if (MouseJustReleased(&window, MouseButton_Right)) println("Right just released");
+        if (MouseJustReleased(&window, MouseButton_Middle)) println("Middle just released");
+        if (MouseJustReleased(&window, MouseButton_Forward)) println("Forward just released");
+        if (MouseJustReleased(&window, MouseButton_Back)) println("Back just released");
 
         if (window.scrollX != 0 || window.scrollY != 0) println("Scroll = { X: %d, Y: %d }", window.scrollX, window.scrollY);
 
-        for (int i = 0; i < KEY_COUNT; i++) {
+        for (int i = 0; i < Key_Count; i++) {
             if (KeyJustPressed(&window, i)) {
                 println("Key %d just pressed", i);
             }
@@ -97,8 +97,8 @@ int main(void) {
             gamepad = WindowGetGamepad(&window, i);
             if (gamepad->connected == false) continue;
             GamepadSetVibration(gamepad,
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_LEFT_TRIGGER),
-                GamepadAxisValue(gamepad, GAMEPAD_AXIS_RIGHT_TRIGGER));
+                GamepadAxisValue(gamepad, GamepadAxis_LeftTrigger),
+                GamepadAxisValue(gamepad, GamepadAxis_RightTrigger));
         }
 
         GraphicsMakeCurrent(&window);
@@ -122,7 +122,7 @@ int main(void) {
         }
     }
     GraphicsClose(&window);
-    AudioClose(&audio);
+    // AudioClose(&audio);
     WindowClose(&window);
     return 0;
 }

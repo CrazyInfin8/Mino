@@ -11,11 +11,11 @@ typedef struct Window Window;
 // have more buttons but they usually get mapped to keyboard keys or have other
 // purposes like changing CPI/DPI instead
 typedef enum MouseButton {
-    MOUSE_LEFT,
-    MOUSE_RIGHT,
-    MOUSE_MIDDLE,
-    MOUSE_BACK,
-    MOUSE_FORWARD,
+    MouseButton_Left,
+    MouseButton_Right,
+    MouseButton_Middle,
+    MouseButton_Back,
+    MouseButton_Forward,
 } MouseButton;
 
 // `MousePressed` returns true if the specified mouse button is pressed.

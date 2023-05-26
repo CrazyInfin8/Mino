@@ -41,8 +41,8 @@ bool KeyJustReleased(Window *window, Key key) {
     return window->keyPressed[key] == false && window->keyPressed[key] != window->pKeyPressed[key];
 }
 
-bool KeyModifierSet(Window *window, KeyModifier modifier) {
-    return ((window->keyModifier | modifier) == modifier);
+bool KeyModSet(Window *window, KeyMod modifier) {
+    return ((window->KeyMod | modifier) == modifier);
 }
 
 rune KeyGetChar(Window *window) {

@@ -20,9 +20,9 @@ typedef struct WindowConfig {
 // `Window` is the primary way to draw content to the screen and process user
 // input.
 typedef struct Window {
-    bool keyPressed[KEY_COUNT];
-    bool pKeyPressed[KEY_COUNT];
-    byte keyModifier;
+    bool keyPressed[Key_Count];
+    bool pKeyPressed[Key_Count];
+    byte KeyMod;
     rune keyChar;
 
     int width, height;

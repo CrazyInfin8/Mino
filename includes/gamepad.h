@@ -21,58 +21,59 @@ typedef struct GamepadNative GamepadNative;
 //  - the square symbol usually corresponds to the X button.
 //  - the triangle symbol usually corresponds to the Y button.
 //
-// Note: The ordering of `GAMEPAD_L2`, `GAMEPAD_R2`, and `GAMEPAD_HOME` is
+// Note: The ordering of `GamepadButton_L2`, `GamepadButton_R2`, and `GamepadButton_Home` is
 // intentionally placed at the end because they may not have corresponding
 // mappings on each platforms. L2 and R2 refer to the triggers which are
 // usually analog axes. You can these values to check and see whether these are
-// pressed beyond the set deadzone. `GAMEPAD_HOME` might not be available on all
+// pressed beyond the set deadzone. `GamepadButton_Home` might not be available on all
 // platforms as the system may use them to exit the program to the systems home
 // menu (For example on consoles like XBox, PlayStation, but the Windows XInput
 // API also doesn't allow access to this button).
 typedef enum PACK_ENUM GamepadButton {
-    GAMEPAD_UP,
-    GAMEPAD_DOWN,
-    GAMEPAD_LEFT,
-    GAMEPAD_RIGHT,
+    GamepadButton_Up,
+    GamepadButton_Down,
+    GamepadButton_Left,
+    GamepadButton_Right,
 
-    GAMEPAD_A,
-    GAMEPAD_B,
-    GAMEPAD_X,
-    GAMEPAD_Y,
+    GamepadButton_A,
+    GamepadButton_B,
+    GamepadButton_X,
+    GamepadButton_Y,
 
-    GAMEPAD_START,
-    GAMEPAD_SELECT,
+    GamepadButton_Start,
+    GamepadButton_Select,
 
-    GAMEPAD_L1,
-    GAMEPAD_R1,
-    GAMEPAD_L3,
-    GAMEPAD_R3,
+    GamepadButton_L1,
+    GamepadButton_R1,
+    GamepadButton_L3,
+    GamepadButton_R3,
 
-    // `GAMEPAD_HOME`
+    // `GamepadButton_Home`
     //
     // Note: This is not might not be accessible on every platforms yet.
     // Consoles like XBox and PlayStation may reserve these but the Windows
     // XInput API also doesn't allow access to this button.
-    GAMEPAD_HOME,
+    GamepadButton_Home,
 
-    // `GAMEPAD_L2` is the left trigger. This is often an analog value however
+    // `GamepadButton_L2` is the left trigger. This is often an analog value however
     // you can check whether this is pressed beyond the deadzone.
-    GAMEPAD_L2,
-    // `GAMEPAD_R2` is the right trigger. This is often an analog value however
+    GamepadButton_L2,
+    // `GamepadButton_R2` is the right trigger. This is often an analog value however
     // you can check whether this is pressed beyond the deadzone.
-    GAMEPAD_R2,
+    GamepadButton_R2,
 
-    GAMEPAD_LB = GAMEPAD_L1,
-    GAMEPAD_RB = GAMEPAD_R1,
-    GAMEPAD_LT = GAMEPAD_L2,
-    GAMEPAD_RT = GAMEPAD_R2,
-    GAMEPAD_LSTICK = GAMEPAD_L3,
-    GAMEPAD_RSTICK = GAMEPAD_R3,
+    GamepadButton_LB = GamepadButton_L1,
+    GamepadButton_RB = GamepadButton_R1,
+    GamepadButton_LT = GamepadButton_L2,
+    GamepadButton_RT = GamepadButton_R2,
 
-    // `GAMEPAD_BUTTON_COUNT` is not a gamepad button. It denotes the number of
+    GamepadButton_LeftStick = GamepadButton_L3,
+    GamepadButton_RightStick = GamepadButton_R3,
+
+    // `GamepadButton_Count` is not a gamepad button. It denotes the number of
     // gamepad buttons available to check.
-    GAMEPAD_BUTTON_COUNT,
-    GAMEPAD_BUTTON_INVALID = ~0,
+    GamepadButton_Count,
+    GamepadButton_Invalid = ~0,
 } GamepadButton;
 
 // `GamepadAxis` represents an analog axis on a standard gamepad controller.
@@ -80,15 +81,15 @@ typedef enum PACK_ENUM GamepadButton {
 // A standard gamepad often has 2 joysticks (which each have 2 directions) and 2
 // analog triggers.
 typedef enum PACK_ENUM GamepadAxis {
-    GAMEPAD_AXIS_LEFT_STICK_X,
-    GAMEPAD_AXIS_LEFT_STICK_Y,
-    GAMEPAD_AXIS_RIGHT_STICK_X,
-    GAMEPAD_AXIS_RIGHT_STICK_Y,
-    GAMEPAD_AXIS_LEFT_TRIGGER,
-    GAMEPAD_AXIS_RIGHT_TRIGGER,
-    // `GAMEPAD_AXIS_COUNT` is not a gamepad axis. It denotes the number of
+    GamepadAxis_LeftStickX,
+    GamepadAxis_LeftStickY,
+    GamepadAxis_RightStickX,
+    GamepadAxis_RightStickY,
+    GamepadAxis_LeftTrigger,
+    GamepadAxis_RightTrigger,
+    // `GamepadAxis_Count` is not a gamepad axis. It denotes the number of
     // gamepad axis available to check.
-    GAMEPAD_AXIS_COUNT,
+    GamepadAxis_Count,
 } GamepadAxis;
 
 // `Gamepad` represents a single player's gamepad.
@@ -98,8 +99,8 @@ typedef enum PACK_ENUM GamepadAxis {
 typedef struct Gamepad {
     bool connected;
 
-    float32 axes[GAMEPAD_AXIS_COUNT];
-    float32 pAxes[GAMEPAD_AXIS_COUNT];
+    float32 axes[GamepadAxis_Count];
+    float32 pAxes[GamepadAxis_Count];
 
     uint32 buttons;
     uint32 pButtons;
@@ -132,13 +133,13 @@ Gamepad* WindowGetGamepad(Window* window, int playerID);
 // can also disconnect, but this function will still return that gamepad.
 //
 // Note: The returned pointer is still owned by Mino and it's location can be
-// changed. 
+// changed.
 Gamepad* WindowGetFirstConnectedGamepad(Window* window);
 
 // `GamepadCount` returns the number of gamepads the window is keeping track of.
 //
 // Not all gamepads counted may be connected.
-int GamepadCount(Window *window);
+int GamepadCount(Window* window);
 
 // `GamepadConnected` checks if the current gamepad is connected.
 bool GamepadConnected(Gamepad* gamepad);

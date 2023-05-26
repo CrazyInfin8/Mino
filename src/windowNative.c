@@ -1,4 +1,3 @@
-#include <minwindef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
@@ -16,16 +15,6 @@
 #define Window MinoWindow
 #endif
 
-#if defined(PLATFORM_Windows)
-#define MOD_CONTROL MINO_MOD_CONTROL
-#define MOD_SHIFT MINO_MOD_SHIFT
-#define MOD_ALT MINO_MOD_ALT
-#define MOD_WIN MINO_MOD_WIN
-#define MOD_CAPS_LOCK MINO_MOD_CAPS_LOCK
-#define MOD_SCROLL_LOCK MINO_MOD_SCROLL_LOCK
-#define MOD_NUM_LOCK MINO_MOD_NUM_LOCK
-#endif
-
 #include "gamepad.h"
 #include "graphics.h"
 #include "keyboard.h"
@@ -35,7 +24,7 @@
 #include "window.h"
 
 static void resetInputState(Window *window) {
-    for (int i = 0; i < KEY_COUNT; i++) {
+    for (int i = 0; i < Key_Count; i++) {
         window->pKeyPressed[i] = window->keyPressed[i];
     }
     window->pMouseX = window->mouseX;
@@ -51,21 +40,13 @@ static void resetInputState(Window *window) {
         gamepad = GamepadListGet(&window->gamepads, i);
         if (gamepad->connected == false) continue;
         gamepad->pButtons = gamepad->buttons;
-        for (int j = 0; j < GAMEPAD_AXIS_COUNT; j++) {
+        for (int j = 0; j < GamepadAxis_Count; j++) {
             gamepad->pAxes[j] = gamepad->axes[j];
         }
     }
 }
 
 #if defined(PLATFORM_Windows)
-
-#undef MOD_CONTROL
-#undef MOD_SHIFT
-#undef MOD_ALT
-#undef MOD_WIN
-#undef MOD_CAPS_LOCK
-#undef MOD_SCROLL_LOCK
-#undef MOD_NUM_LOCK
 
 #include <windows.h>
 #include <winuser.h>
@@ -80,8 +61,8 @@ struct WindowNative {
     int64 lastTick;
 };
 
-const Key WinKey2MinoKey[256] = {['A'] = KEY_A, ['B'] = KEY_B, ['C'] = KEY_C, ['D'] = KEY_D, ['E'] = KEY_E, ['F'] = KEY_F, ['G'] = KEY_G, ['H'] = KEY_H, ['I'] = KEY_I, ['J'] = KEY_J, ['K'] = KEY_K, ['L'] = KEY_L, ['M'] = KEY_M, ['N'] = KEY_N, ['O'] = KEY_O, ['P'] = KEY_P, ['Q'] = KEY_Q, ['R'] = KEY_R, ['S'] = KEY_S, ['T'] = KEY_T, ['U'] = KEY_U, ['V'] = KEY_V, ['W'] = KEY_W, ['X'] = KEY_X, ['Y'] = KEY_Y, ['Z'] = KEY_Z, [VK_LMENU] = KEY_LEFT_ALT, [VK_RMENU] = KEY_RIGHT_ALT, [VK_DOWN] = KEY_DOWN_ARROW, [VK_LEFT] = KEY_LEFT_ARROW, [VK_RIGHT] = KEY_RIGHT_ARROW, [VK_UP] = KEY_UP_ARROW, [VK_OEM_3] = KEY_TILDE, [VK_OEM_5] = KEY_BACKSLASH, [VK_BACK] = KEY_BACKSPACE, [VK_OEM_4] = KEY_LEFT_BRACKET, [VK_OEM_6] = KEY_RIGHT_BRACKET, [VK_CAPITAL] = KEY_CAPS_LOCK, [VK_OEM_COMMA] = KEY_COMMA, [VK_APPS] = KEY_CONTEXT_MENU, [VK_LCONTROL] = KEY_LEFT_CONTROL, [VK_RCONTROL] = KEY_RIGHT_CONTROL, [VK_DELETE] = KEY_DELETE, ['0'] = KEY_0, ['1'] = KEY_1, ['2'] = KEY_2, ['3'] = KEY_3, ['4'] = KEY_4, ['5'] = KEY_5, ['6'] = KEY_6, ['7'] = KEY_7, ['8'] = KEY_8, ['9'] = KEY_9, [VK_END] = KEY_END, [VK_RETURN] = KEY_ENTER, [VK_OEM_PLUS] = KEY_EQUAL, [VK_ESCAPE] = KEY_ESCAPE, [VK_F1] = KEY_F1, [VK_F2] = KEY_F2, [VK_F3] = KEY_F3, [VK_F4] = KEY_F4, [VK_F5] = KEY_F5, [VK_F6] = KEY_F6, [VK_F7] = KEY_F7, [VK_F8] = KEY_F8, [VK_F9] = KEY_F9, [VK_F10] = KEY_F10, [VK_F11] = KEY_F11, [VK_F12] = KEY_F12, [VK_HOME] = KEY_HOME, [VK_INSERT] = KEY_INSERT, [VK_LWIN] = KEY_LEFT_WIN, [VK_RWIN] = KEY_RIGHT_WIN, [VK_OEM_MINUS] = KEY_MINUS, [VK_NUMLOCK] = KEY_NUMLOCK, [VK_NUMPAD0] = KEY_NP_0, [VK_NUMPAD1] = KEY_NP_1, [VK_NUMPAD2] = KEY_NP_2, [VK_NUMPAD3] = KEY_NP_3, [VK_NUMPAD4] = KEY_NP_4, [VK_NUMPAD5] = KEY_NP_5, [VK_NUMPAD6] = KEY_NP_6, [VK_NUMPAD7] = KEY_NP_7, [VK_NUMPAD8] = KEY_NP_8, [VK_NUMPAD9] = KEY_NP_9, [VK_ADD] = KEY_NP_ADD, [VK_DECIMAL] = KEY_NP_DECIMAL, [VK_DIVIDE] = KEY_NP_DIVIDE, [VK_SEPARATOR] = KEY_NP_ENTER, /*KEY_NP_EQUAL*/[VK_MULTIPLY] = KEY_NP_MULTIPLY, [VK_SUBTRACT] = KEY_NP_SUBTRACT, [VK_NEXT] = KEY_PAGE_DOWN, [VK_PRIOR] = KEY_PAGE_UP, [VK_PAUSE] = KEY_PAUSE, [VK_OEM_PERIOD] = KEY_PERIOD, [VK_SNAPSHOT] = KEY_PRINT_SCREEN, [VK_OEM_7] = KEY_QUOTE, [VK_SCROLL] = KEY_SCROLL_LOCK, [VK_OEM_1] = KEY_SEMICOLON, [VK_LSHIFT] = KEY_LEFT_SHIFT, [VK_RSHIFT] = KEY_RIGHT_SHIFT, [VK_OEM_2] = KEY_SLASH, [VK_SPACE] = KEY_SPACE, [VK_TAB] = KEY_TAB, [VK_MENU] = KEY_ALT, [VK_CONTROL] = KEY_CONTROL, [VK_SHIFT] = KEY_SHIFT /*, KEY_WIN*/};
-const int MinoKey2WinKey[KEY_COUNT] = {[KEY_A] = 'A', [KEY_B] = 'B', [KEY_C] = 'C', [KEY_D] = 'D', [KEY_E] = 'E', [KEY_F] = 'F', [KEY_G] = 'G', [KEY_H] = 'H', [KEY_I] = 'I', [KEY_J] = 'J', [KEY_K] = 'K', [KEY_L] = 'L', [KEY_M] = 'M', [KEY_N] = 'N', [KEY_O] = 'O', [KEY_P] = 'P', [KEY_Q] = 'Q', [KEY_R] = 'R', [KEY_S] = 'S', [KEY_T] = 'T', [KEY_U] = 'U', [KEY_V] = 'V', [KEY_W] = 'W', [KEY_X] = 'X', [KEY_Y] = 'Y', [KEY_Z] = 'Z', [KEY_LEFT_ALT] = VK_LMENU, [KEY_RIGHT_ALT] = VK_RMENU, [KEY_DOWN_ARROW] = VK_DOWN, [KEY_LEFT_ARROW] = VK_LEFT, [KEY_RIGHT_ARROW] = VK_RIGHT, [KEY_UP_ARROW] = VK_UP, [KEY_TILDE] = VK_OEM_3, [KEY_BACKSLASH] = VK_OEM_5, [KEY_BACKSPACE] = VK_BACK, [KEY_LEFT_BRACKET] = VK_OEM_4, [KEY_RIGHT_BRACKET] = VK_OEM_6, [KEY_CAPS_LOCK] = VK_CAPITAL, [KEY_COMMA] = VK_OEM_COMMA, [KEY_CONTEXT_MENU] = VK_APPS, [KEY_LEFT_CONTROL] = VK_LCONTROL, [KEY_RIGHT_CONTROL] = VK_RCONTROL, [KEY_DELETE] = VK_DELETE, [KEY_0] = '0', [KEY_1] = '1', [KEY_2] = '2', [KEY_3] = '3', [KEY_4] = '4', [KEY_5] = '5', [KEY_6] = '6', [KEY_7] = '7', [KEY_8] = '8', [KEY_9] = '9', [KEY_END] = VK_END, [KEY_ENTER] = VK_RETURN, [KEY_EQUAL] = VK_OEM_PLUS, [KEY_ESCAPE] = VK_ESCAPE, [KEY_F1] = VK_F1, [KEY_F2] = VK_F2, [KEY_F3] = VK_F3, [KEY_F4] = VK_F4, [KEY_F5] = VK_F5, [KEY_F6] = VK_F6, [KEY_F7] = VK_F7, [KEY_F8] = VK_F8, [KEY_F9] = VK_F9, [KEY_F10] = VK_F10, [KEY_F11] = VK_F11, [KEY_F12] = VK_F12, [KEY_HOME] = VK_HOME, [KEY_INSERT] = VK_INSERT, [KEY_LEFT_WIN] = VK_LWIN, [KEY_RIGHT_WIN] = VK_RWIN, [KEY_MINUS] = VK_OEM_MINUS, [KEY_NUMLOCK] = VK_NUMLOCK, [KEY_NP_0] = VK_NUMPAD0, [KEY_NP_1] = VK_NUMPAD1, [KEY_NP_2] = VK_NUMPAD2, [KEY_NP_3] = VK_NUMPAD3, [KEY_NP_4] = VK_NUMPAD4, [KEY_NP_5] = VK_NUMPAD5, [KEY_NP_6] = VK_NUMPAD6, [KEY_NP_7] = VK_NUMPAD7, [KEY_NP_8] = VK_NUMPAD8, [KEY_NP_9] = VK_NUMPAD9, [KEY_NP_ADD] = VK_ADD, [KEY_NP_DECIMAL] = VK_DECIMAL, [KEY_NP_DIVIDE] = VK_DIVIDE, [KEY_NP_ENTER] = VK_SEPARATOR, /*KEY_NP_EQUAL*/[KEY_NP_MULTIPLY] = VK_MULTIPLY, [KEY_NP_SUBTRACT] = VK_SUBTRACT, [KEY_PAGE_DOWN] = VK_NEXT, [KEY_PAGE_UP] = VK_PRIOR, [KEY_PAUSE] = VK_PAUSE, [KEY_PERIOD] = VK_OEM_PERIOD, [KEY_PRINT_SCREEN] = VK_SNAPSHOT, [KEY_QUOTE] = VK_OEM_7, [KEY_SCROLL_LOCK] = VK_SCROLL, [KEY_SEMICOLON] = VK_OEM_1, [KEY_LEFT_SHIFT] = VK_LSHIFT, [KEY_RIGHT_SHIFT] = VK_RSHIFT, [KEY_SLASH] = VK_OEM_2, [KEY_SPACE] = VK_SPACE, [KEY_TAB] = VK_TAB, [KEY_ALT] = VK_MENU, [KEY_CONTROL] = VK_CONTROL, [KEY_SHIFT] = VK_SHIFT /*, KEY_WIN*/};
+const Key WinKey2MinoKey[256] = {['A'] = Key_A, ['B'] = Key_B, ['C'] = Key_C, ['D'] = Key_D, ['E'] = Key_E, ['F'] = Key_F, ['G'] = Key_G, ['H'] = Key_H, ['I'] = Key_I, ['J'] = Key_J, ['K'] = Key_K, ['L'] = Key_L, ['M'] = Key_M, ['N'] = Key_N, ['O'] = Key_O, ['P'] = Key_P, ['Q'] = Key_Q, ['R'] = Key_R, ['S'] = Key_S, ['T'] = Key_T, ['U'] = Key_U, ['V'] = Key_V, ['W'] = Key_W, ['X'] = Key_X, ['Y'] = Key_Y, ['Z'] = Key_Z, [VK_LMENU] = Key_LeftAlt, [VK_RMENU] = Key_RightAlt, [VK_DOWN] = Key_DownArrow, [VK_LEFT] = Key_LeftArrow, [VK_RIGHT] = Key_RightArrow, [VK_UP] = Key_UpArrow, [VK_OEM_3] = Key_Tilde, [VK_OEM_5] = Key_Backslash, [VK_BACK] = Key_Backspace, [VK_OEM_4] = Key_LeftBracket, [VK_OEM_6] = Key_RightBracket, [VK_CAPITAL] = Key_CapsLock, [VK_OEM_COMMA] = Key_Comma, [VK_APPS] = Key_Menu, [VK_LCONTROL] = Key_LeftCtrl, [VK_RCONTROL] = Key_RightCtrl, [VK_DELETE] = Key_Delete, ['0'] = Key_0, ['1'] = Key_1, ['2'] = Key_2, ['3'] = Key_3, ['4'] = Key_4, ['5'] = Key_5, ['6'] = Key_6, ['7'] = Key_7, ['8'] = Key_8, ['9'] = Key_9, [VK_END] = Key_End, [VK_RETURN] = Key_Enter, [VK_OEM_PLUS] = Key_Equal, [VK_ESCAPE] = Key_Escape, [VK_F1] = Key_F1, [VK_F2] = Key_F2, [VK_F3] = Key_F3, [VK_F4] = Key_F4, [VK_F5] = Key_F5, [VK_F6] = Key_F6, [VK_F7] = Key_F7, [VK_F8] = Key_F8, [VK_F9] = Key_F9, [VK_F10] = Key_F10, [VK_F11] = Key_F11, [VK_F12] = Key_F12, [VK_HOME] = Key_Home, [VK_INSERT] = Key_Insert, [VK_LWIN] = Key_LeftWin, [VK_RWIN] = Key_RightWin, [VK_OEM_MINUS] = Key_Minus, [VK_NUMLOCK] = Key_NumLock, [VK_NUMPAD0] = Key_NumPad0, [VK_NUMPAD1] = Key_NumPad1, [VK_NUMPAD2] = Key_NumPad2, [VK_NUMPAD3] = Key_NumPad3, [VK_NUMPAD4] = Key_NumPad4, [VK_NUMPAD5] = Key_NumPad5, [VK_NUMPAD6] = Key_NumPad6, [VK_NUMPAD7] = Key_NumPad7, [VK_NUMPAD8] = Key_NumPad8, [VK_NUMPAD9] = Key_NumPad9, [VK_ADD] = Key_NumPadAdd, [VK_DECIMAL] = Key_NumPadDecimal, [VK_DIVIDE] = Key_NumPadDivide, [VK_SEPARATOR] = Key_NumPadEnter, /*Key_NP_EQUAL*/[VK_MULTIPLY] = Key_NumPadMultiply, [VK_SUBTRACT] = Key_NumPadSubtract, [VK_NEXT] = Key_PageDown, [VK_PRIOR] = Key_PageUp, [VK_PAUSE] = Key_Pause, [VK_OEM_PERIOD] = Key_Period, [VK_SNAPSHOT] = Key_PrintScreen, [VK_OEM_7] = Key_Quote, [VK_SCROLL] = Key_ScrollLock, [VK_OEM_1] = Key_Semicolon, [VK_LSHIFT] = Key_LeftShift, [VK_RSHIFT] = Key_RightShift, [VK_OEM_2] = Key_Slash, [VK_SPACE] = Key_Space, [VK_TAB] = Key_Tab, [VK_MENU] = Key_Alt, [VK_CONTROL] = Key_Ctrl, [VK_SHIFT] = Key_Shift /*, Key_WIN*/};
+const int MinoKey2WinKey[Key_Count] = {[Key_A] = 'A', [Key_B] = 'B', [Key_C] = 'C', [Key_D] = 'D', [Key_E] = 'E', [Key_F] = 'F', [Key_G] = 'G', [Key_H] = 'H', [Key_I] = 'I', [Key_J] = 'J', [Key_K] = 'K', [Key_L] = 'L', [Key_M] = 'M', [Key_N] = 'N', [Key_O] = 'O', [Key_P] = 'P', [Key_Q] = 'Q', [Key_R] = 'R', [Key_S] = 'S', [Key_T] = 'T', [Key_U] = 'U', [Key_V] = 'V', [Key_W] = 'W', [Key_X] = 'X', [Key_Y] = 'Y', [Key_Z] = 'Z', [Key_LeftAlt] = VK_LMENU, [Key_RightAlt] = VK_RMENU, [Key_DownArrow] = VK_DOWN, [Key_LeftArrow] = VK_LEFT, [Key_RightArrow] = VK_RIGHT, [Key_UpArrow] = VK_UP, [Key_Tilde] = VK_OEM_3, [Key_Backslash] = VK_OEM_5, [Key_Backspace] = VK_BACK, [Key_LeftBracket] = VK_OEM_4, [Key_RightBracket] = VK_OEM_6, [Key_CapsLock] = VK_CAPITAL, [Key_Comma] = VK_OEM_COMMA, [Key_Menu] = VK_APPS, [Key_LeftCtrl] = VK_LCONTROL, [Key_RightCtrl] = VK_RCONTROL, [Key_Delete] = VK_DELETE, [Key_0] = '0', [Key_1] = '1', [Key_2] = '2', [Key_3] = '3', [Key_4] = '4', [Key_5] = '5', [Key_6] = '6', [Key_7] = '7', [Key_8] = '8', [Key_9] = '9', [Key_End] = VK_END, [Key_Enter] = VK_RETURN, [Key_Equal] = VK_OEM_PLUS, [Key_Escape] = VK_ESCAPE, [Key_F1] = VK_F1, [Key_F2] = VK_F2, [Key_F3] = VK_F3, [Key_F4] = VK_F4, [Key_F5] = VK_F5, [Key_F6] = VK_F6, [Key_F7] = VK_F7, [Key_F8] = VK_F8, [Key_F9] = VK_F9, [Key_F10] = VK_F10, [Key_F11] = VK_F11, [Key_F12] = VK_F12, [Key_Home] = VK_HOME, [Key_Insert] = VK_INSERT, [Key_LeftWin] = VK_LWIN, [Key_RightWin] = VK_RWIN, [Key_Minus] = VK_OEM_MINUS, [Key_NumLock] = VK_NUMLOCK, [Key_NumPad0] = VK_NUMPAD0, [Key_NumPad1] = VK_NUMPAD1, [Key_NumPad2] = VK_NUMPAD2, [Key_NumPad3] = VK_NUMPAD3, [Key_NumPad4] = VK_NUMPAD4, [Key_NumPad5] = VK_NUMPAD5, [Key_NumPad6] = VK_NUMPAD6, [Key_NumPad7] = VK_NUMPAD7, [Key_NumPad8] = VK_NUMPAD8, [Key_NumPad9] = VK_NUMPAD9, [Key_NumPadAdd] = VK_ADD, [Key_NumPadDecimal] = VK_DECIMAL, [Key_NumPadDivide] = VK_DIVIDE, [Key_NumPadEnter] = VK_SEPARATOR, /*Key_NP_EQUAL*/[Key_NumPadMultiply] = VK_MULTIPLY, [Key_NumPadSubtract] = VK_SUBTRACT, [Key_PageDown] = VK_NEXT, [Key_PageUp] = VK_PRIOR, [Key_Pause] = VK_PAUSE, [Key_Period] = VK_OEM_PERIOD, [Key_PrintScreen] = VK_SNAPSHOT, [Key_Quote] = VK_OEM_7, [Key_ScrollLock] = VK_SCROLL, [Key_Semicolon] = VK_OEM_1, [Key_LeftShift] = VK_LSHIFT, [Key_RightShift] = VK_RSHIFT, [Key_Slash] = VK_OEM_2, [Key_Space] = VK_SPACE, [Key_Tab] = VK_TAB, [Key_Alt] = VK_MENU, [Key_Ctrl] = VK_CONTROL, [Key_Shift] = VK_SHIFT /*, Key_WIN*/};
 
 static LRESULT CALLBACK WindowProcedure(HWND windowHandle, UINT msg, WPARAM wParam,
     LPARAM lParam) {
@@ -116,35 +97,35 @@ static LRESULT CALLBACK WindowProcedure(HWND windowHandle, UINT msg, WPARAM wPar
         } break;
 
         case WM_LBUTTONDOWN: {
-            window->mousePressed = (uint8)setBit(window->mousePressed, MOUSE_LEFT);
+            window->mousePressed = (uint8)setBit(window->mousePressed, MouseButton_Left);
         } break;
 
         case WM_LBUTTONUP: {
-            window->mousePressed = (uint8)unsetBit(window->mousePressed, MOUSE_LEFT);
+            window->mousePressed = (uint8)unsetBit(window->mousePressed, MouseButton_Left);
         } break;
 
         case WM_RBUTTONDOWN: {
-            window->mousePressed = (uint8)setBit(window->mousePressed, MOUSE_RIGHT);
+            window->mousePressed = (uint8)setBit(window->mousePressed, MouseButton_Right);
         } break;
 
         case WM_RBUTTONUP: {
-            window->mousePressed = (uint8)unsetBit(window->mousePressed, MOUSE_RIGHT);
+            window->mousePressed = (uint8)unsetBit(window->mousePressed, MouseButton_Right);
         } break;
 
         case WM_MBUTTONDOWN: {
-            window->mousePressed = (uint8)setBit(window->mousePressed, MOUSE_MIDDLE);
+            window->mousePressed = (uint8)setBit(window->mousePressed, MouseButton_Middle);
         } break;
 
         case WM_MBUTTONUP: {
-            window->mousePressed = (uint8)unsetBit(window->mousePressed, MOUSE_MIDDLE);
+            window->mousePressed = (uint8)unsetBit(window->mousePressed, MouseButton_Middle);
         } break;
 
         case WM_XBUTTONDOWN: {
-            window->mousePressed = (uint8)setBit(window->mousePressed, (HIWORD(wParam) == XBUTTON1) ? MOUSE_BACK : MOUSE_FORWARD);
+            window->mousePressed = (uint8)setBit(window->mousePressed, (HIWORD(wParam) == XBUTTON1) ? MouseButton_Back : MouseButton_Forward);
         } break;
 
         case WM_XBUTTONUP: {
-            window->mousePressed = (uint8)unsetBit(window->mousePressed, (HIWORD(wParam) == XBUTTON1) ? MOUSE_BACK : MOUSE_FORWARD);
+            window->mousePressed = (uint8)unsetBit(window->mousePressed, (HIWORD(wParam) == XBUTTON1) ? MouseButton_Back : MouseButton_Forward);
         } break;
 
         case WM_MOUSEMOVE: {
@@ -166,13 +147,14 @@ static LRESULT CALLBACK WindowProcedure(HWND windowHandle, UINT msg, WPARAM wPar
             window->keyPressed[key] = (msg == WM_KEYDOWN);
 
             // Check modifiers
-            window->keyModifier =
-                (GetKeyState(VK_CONTROL) & 0x8000 ? MINO_MOD_CONTROL : 0) |
-                (GetKeyState(VK_SHIFT) & 0x8000 ? MINO_MOD_SHIFT : 0) |
-                ((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & 0x8000 ? MINO_MOD_WIN : 0) |
-                (GetKeyState(VK_CAPITAL) & 0x0001 ? MINO_MOD_CAPS_LOCK : 0) |
-                (GetKeyState(VK_SCROLL) & 0x0001 ? MINO_MOD_SCROLL_LOCK : 0) |
-                (GetKeyState(VK_NUMLOCK) & 0x0001 ? MINO_MOD_NUM_LOCK : 0);
+            window->KeyMod =
+                (GetKeyState(VK_CONTROL) & 0x8000 ? KeyMod_Ctrl : 0) |
+                (GetKeyState(VK_SHIFT) & 0x8000 ? KeyMod_Shift : 0) |
+                (GetKeyState(VK_MENU) & 0x8000 ? KeyMod_Alt : 0) |
+                ((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & 0x8000 ? KeyMod_Win : 0) |
+                (GetKeyState(VK_CAPITAL) & 0x0001 ? KeyMod_CapsLock : 0) |
+                (GetKeyState(VK_SCROLL) & 0x0001 ? KeyMod_ScrollLock : 0) |
+                (GetKeyState(VK_NUMLOCK) & 0x0001 ? KeyMod_NumLock : 0);
         } break;
 
         case WM_CHAR: {
@@ -233,7 +215,7 @@ bool WindowInit(Window *window, WindowConfig config) {
     return true;
 }
 
-const int MinoGamepadButton2XinputButton[] = {[GAMEPAD_UP] = XINPUT_GAMEPAD_DPAD_UP, [GAMEPAD_DOWN] = XINPUT_GAMEPAD_DPAD_DOWN, [GAMEPAD_LEFT] = XINPUT_GAMEPAD_DPAD_LEFT, [GAMEPAD_RIGHT] = XINPUT_GAMEPAD_DPAD_RIGHT, [GAMEPAD_A] = XINPUT_GAMEPAD_A, [GAMEPAD_B] = XINPUT_GAMEPAD_B, [GAMEPAD_X] = XINPUT_GAMEPAD_X, [GAMEPAD_Y] = XINPUT_GAMEPAD_Y, [GAMEPAD_L1] = XINPUT_GAMEPAD_LEFT_SHOULDER, [GAMEPAD_L3] = XINPUT_GAMEPAD_LEFT_THUMB, [GAMEPAD_R1] = XINPUT_GAMEPAD_RIGHT_SHOULDER, [GAMEPAD_R3] = XINPUT_GAMEPAD_RIGHT_THUMB, [GAMEPAD_START] = XINPUT_GAMEPAD_START, [GAMEPAD_SELECT] = XINPUT_GAMEPAD_BACK};
+const int MinoGamepadButton2XinputButton[] = {[GamepadButton_Up] = XINPUT_GAMEPAD_DPAD_UP, [GamepadButton_Down] = XINPUT_GAMEPAD_DPAD_DOWN, [GamepadButton_Left] = XINPUT_GAMEPAD_DPAD_LEFT, [GamepadButton_Right] = XINPUT_GAMEPAD_DPAD_RIGHT, [GamepadButton_A] = XINPUT_GAMEPAD_A, [GamepadButton_B] = XINPUT_GAMEPAD_B, [GamepadButton_X] = XINPUT_GAMEPAD_X, [GamepadButton_Y] = XINPUT_GAMEPAD_Y, [GamepadButton_L1] = XINPUT_GAMEPAD_LEFT_SHOULDER, [GamepadButton_L3] = XINPUT_GAMEPAD_LEFT_THUMB, [GamepadButton_R1] = XINPUT_GAMEPAD_RIGHT_SHOULDER, [GamepadButton_R3] = XINPUT_GAMEPAD_RIGHT_THUMB, [GamepadButton_Start] = XINPUT_GAMEPAD_START, [GamepadButton_Select] = XINPUT_GAMEPAD_BACK};
 
 static void updateGamepads(Window *window) {
     XINPUT_STATE xInputState;
@@ -255,18 +237,18 @@ static void updateGamepads(Window *window) {
             }
         }
 
-        gamepad->axes[GAMEPAD_AXIS_LEFT_STICK_X] = clamp((float32)xInputState.Gamepad.sThumbLX / 0x7FFF, -1, 1);
-        gamepad->axes[GAMEPAD_AXIS_LEFT_STICK_Y] = clamp((float32)xInputState.Gamepad.sThumbLY / 0x7FFF, -1, 1);
-        gamepad->axes[GAMEPAD_AXIS_RIGHT_STICK_X] = clamp((float32)xInputState.Gamepad.sThumbRX / 0x7FFF, -1, 1);
-        gamepad->axes[GAMEPAD_AXIS_RIGHT_STICK_Y] = clamp((float32)xInputState.Gamepad.sThumbRY / 0x7FFF, -1, 1);
-        gamepad->axes[GAMEPAD_AXIS_LEFT_TRIGGER] = clamp((float32)xInputState.Gamepad.bLeftTrigger / 0xFF, 0, 1);
-        gamepad->axes[GAMEPAD_AXIS_RIGHT_TRIGGER] = clamp((float32)xInputState.Gamepad.bRightTrigger / 0xFF, 0, 1);
+        gamepad->axes[GamepadAxis_LeftStickX] = clamp((float32)xInputState.Gamepad.sThumbLX / 0x7FFF, -1, 1);
+        gamepad->axes[GamepadAxis_LeftStickY] = clamp((float32)xInputState.Gamepad.sThumbLY / 0x7FFF, -1, 1);
+        gamepad->axes[GamepadAxis_RightStickX] = clamp((float32)xInputState.Gamepad.sThumbRX / 0x7FFF, -1, 1);
+        gamepad->axes[GamepadAxis_RightStickY] = clamp((float32)xInputState.Gamepad.sThumbRY / 0x7FFF, -1, 1);
+        gamepad->axes[GamepadAxis_LeftTrigger] = clamp((float32)xInputState.Gamepad.bLeftTrigger / 0xFF, 0, 1);
+        gamepad->axes[GamepadAxis_RightTrigger] = clamp((float32)xInputState.Gamepad.bRightTrigger / 0xFF, 0, 1);
 
         if (xInputState.Gamepad.bLeftTrigger < XINPUT_GAMEPAD_TRIGGER_THRESHOLD) {
-            gamepad->buttons = (uint32)unsetBit(gamepad->buttons, GAMEPAD_L2);
+            gamepad->buttons = (uint32)unsetBit(gamepad->buttons, GamepadButton_L2);
         };
         if (xInputState.Gamepad.bRightTrigger < XINPUT_GAMEPAD_TRIGGER_THRESHOLD) {
-            gamepad->buttons = (uint32)unsetBit(gamepad->buttons, GAMEPAD_R2);
+            gamepad->buttons = (uint32)unsetBit(gamepad->buttons, GamepadButton_R2);
         };
 
         XINPUT_VIBRATION vibrations = {
@@ -394,112 +376,112 @@ void GraphicsMakeCurrent(Window *window) {
 
 static Key XKey2MinoKey(int key) {
     switch (key) {
-        case XK_a: return KEY_A;
-        case XK_b: return KEY_B;
-        case XK_c: return KEY_C;
-        case XK_d: return KEY_D;
-        case XK_e: return KEY_E;
-        case XK_f: return KEY_F;
-        case XK_g: return KEY_G;
-        case XK_h: return KEY_H;
-        case XK_i: return KEY_I;
-        case XK_j: return KEY_J;
-        case XK_k: return KEY_K;
-        case XK_l: return KEY_L;
-        case XK_m: return KEY_M;
-        case XK_n: return KEY_N;
-        case XK_o: return KEY_O;
-        case XK_p: return KEY_P;
-        case XK_q: return KEY_Q;
-        case XK_r: return KEY_R;
-        case XK_s: return KEY_S;
-        case XK_t: return KEY_T;
-        case XK_u: return KEY_U;
-        case XK_v: return KEY_V;
-        case XK_w: return KEY_W;
-        case XK_x: return KEY_X;
-        case XK_y: return KEY_Y;
-        case XK_z: return KEY_Z;
-        case XK_Alt_L: return KEY_LEFT_ALT;
-        case XK_Alt_R: return KEY_RIGHT_ALT;
-        case XK_Down: return KEY_DOWN_ARROW;
-        case XK_Left: return KEY_LEFT_ARROW;
-        case XK_Right: return KEY_RIGHT_ARROW;
-        case XK_Up: return KEY_UP_ARROW;
-        case XK_grave: return KEY_TILDE;
-        case XK_backslash: return KEY_BACKSLASH;
-        case XK_BackSpace: return KEY_BACKSPACE;
-        case XK_bracketleft: return KEY_LEFT_BRACKET;
-        case XK_bracketright: return KEY_RIGHT_BRACKET;
-        case XK_Caps_Lock: return KEY_CAPS_LOCK;
-        case XK_comma: return KEY_COMMA;
-        case XK_Menu: return KEY_CONTEXT_MENU;
-        case XK_Control_L: return KEY_LEFT_CONTROL;
-        case XK_Control_R: return KEY_RIGHT_CONTROL;
-        case XK_Delete: return KEY_DELETE;
-        case XK_0: return KEY_0;
-        case XK_1: return KEY_1;
-        case XK_2: return KEY_2;
-        case XK_3: return KEY_3;
-        case XK_4: return KEY_4;
-        case XK_5: return KEY_5;
-        case XK_6: return KEY_6;
-        case XK_7: return KEY_7;
-        case XK_8: return KEY_8;
-        case XK_9: return KEY_9;
-        case XK_End: return KEY_END;
-        case XK_Return: return KEY_ENTER;
-        case XK_equal: return KEY_EQUAL;
-        case XK_Escape: return KEY_ESCAPE;
-        case XK_F1: return KEY_F1;
-        case XK_F2: return KEY_F2;
-        case XK_F3: return KEY_F3;
-        case XK_F4: return KEY_F4;
-        case XK_F5: return KEY_F5;
-        case XK_F6: return KEY_F6;
-        case XK_F7: return KEY_F7;
-        case XK_F8: return KEY_F8;
-        case XK_F9: return KEY_F9;
-        case XK_F10: return KEY_F10;
-        case XK_F11: return KEY_F11;
-        case XK_F12: return KEY_F12;
-        case XK_Home: return KEY_HOME;
-        case XK_Insert: return KEY_INSERT;
-        case XK_Super_L: return KEY_LEFT_WIN;
-        case XK_Super_R: return KEY_RIGHT_WIN;
-        case XK_minus: return KEY_MINUS;
-        case XK_Num_Lock: return KEY_NUMLOCK;
-        case XK_KP_Insert: return KEY_NP_0;
-        case XK_KP_End: return KEY_NP_1;
-        case XK_KP_Down: return KEY_NP_2;
-        case XK_KP_Page_Down: return KEY_NP_3;
-        case XK_KP_Left: return KEY_NP_4;
-        case XK_KP_Begin: return KEY_NP_5;
-        case XK_KP_Right: return KEY_NP_6;
-        case XK_KP_Home: return KEY_NP_7;
-        case XK_KP_Up: return KEY_NP_8;
-        case XK_KP_Page_Up: return KEY_NP_9;
-        case XK_KP_Add: return KEY_NP_ADD;
-        case XK_KP_Delete: return KEY_NP_DECIMAL;
-        case XK_KP_Divide: return KEY_NP_DIVIDE;
-        case XK_KP_Enter: return KEY_NP_ENTER;
-        case XK_KP_Equal: return KEY_NP_EQUAL;
-        case XK_KP_Multiply: return KEY_NP_MULTIPLY;
-        case XK_KP_Subtract: return KEY_NP_SUBTRACT;
-        case XK_Page_Down: return KEY_PAGE_DOWN;
-        case XK_Page_Up: return KEY_PAGE_UP;
-        case XK_Pause: return KEY_PAUSE;
-        case XK_period: return KEY_PERIOD;
-        case XK_Print: return KEY_PRINT_SCREEN;
-        case XK_apostrophe: return KEY_QUOTE;
-        case XK_Scroll_Lock: return KEY_SCROLL_LOCK;
-        case XK_semicolon: return KEY_SEMICOLON;
-        case XK_Shift_L: return KEY_LEFT_SHIFT;
-        case XK_Shift_R: return KEY_RIGHT_SHIFT;
-        case XK_slash: return KEY_SLASH;
-        case XK_space: return KEY_SPACE;
-        case XK_Tab: return KEY_TAB;
-        default: return KEY_INVALID;
+        case XK_a: return Key_A;
+        case XK_b: return Key_B;
+        case XK_c: return Key_C;
+        case XK_d: return Key_D;
+        case XK_e: return Key_E;
+        case XK_f: return Key_F;
+        case XK_g: return Key_G;
+        case XK_h: return Key_H;
+        case XK_i: return Key_I;
+        case XK_j: return Key_J;
+        case XK_k: return Key_K;
+        case XK_l: return Key_L;
+        case XK_m: return Key_M;
+        case XK_n: return Key_N;
+        case XK_o: return Key_O;
+        case XK_p: return Key_P;
+        case XK_q: return Key_Q;
+        case XK_r: return Key_R;
+        case XK_s: return Key_S;
+        case XK_t: return Key_T;
+        case XK_u: return Key_U;
+        case XK_v: return Key_V;
+        case XK_w: return Key_W;
+        case XK_x: return Key_X;
+        case XK_y: return Key_Y;
+        case XK_z: return Key_Z;
+        case XK_Alt_L: return Key_LeftAlt;
+        case XK_Alt_R: return Key_RightAlt;
+        case XK_Down: return Key_DownArrow;
+        case XK_Left: return Key_LeftArrow;
+        case XK_Right: return Key_RightArrow;
+        case XK_Up: return Key_UpArrow;
+        case XK_grave: return Key_Tilde;
+        case XK_backslash: return Key_Backslash;
+        case XK_BackSpace: return Key_Backspace;
+        case XK_bracketleft: return Key_LeftBracket;
+        case XK_bracketright: return Key_RightBracket;
+        case XK_Caps_Lock: return Key_CapsLock;
+        case XK_comma: return Key_Comma;
+        case XK_Menu: return Key_Menu;
+        case XK_Control_L: return Key_LeftCtrl;
+        case XK_Control_R: return Key_RightCtrl;
+        case XK_Delete: return Key_Delete;
+        case XK_0: return Key_0;
+        case XK_1: return Key_1;
+        case XK_2: return Key_2;
+        case XK_3: return Key_3;
+        case XK_4: return Key_4;
+        case XK_5: return Key_5;
+        case XK_6: return Key_6;
+        case XK_7: return Key_7;
+        case XK_8: return Key_8;
+        case XK_9: return Key_9;
+        case XK_End: return Key_End;
+        case XK_Return: return Key_Enter;
+        case XK_equal: return Key_Equal;
+        case XK_Escape: return Key_Escape;
+        case XK_F1: return Key_F1;
+        case XK_F2: return Key_F2;
+        case XK_F3: return Key_F3;
+        case XK_F4: return Key_F4;
+        case XK_F5: return Key_F5;
+        case XK_F6: return Key_F6;
+        case XK_F7: return Key_F7;
+        case XK_F8: return Key_F8;
+        case XK_F9: return Key_F9;
+        case XK_F10: return Key_F10;
+        case XK_F11: return Key_F11;
+        case XK_F12: return Key_F12;
+        case XK_Home: return Key_Home;
+        case XK_Insert: return Key_Insert;
+        case XK_Super_L: return Key_LeftWin;
+        case XK_Super_R: return Key_RightWin;
+        case XK_minus: return Key_Minus;
+        case XK_Num_Lock: return Key_NumLock;
+        case XK_KP_Insert: return Key_NumPad0;
+        case XK_KP_End: return Key_NumPad1;
+        case XK_KP_Down: return Key_NumPad2;
+        case XK_KP_Page_Down: return Key_NumPad3;
+        case XK_KP_Left: return Key_NumPad4;
+        case XK_KP_Begin: return Key_NumPad5;
+        case XK_KP_Right: return Key_NumPad6;
+        case XK_KP_Home: return Key_NumPad7;
+        case XK_KP_Up: return Key_NumPad8;
+        case XK_KP_Page_Up: return Key_NumPad9;
+        case XK_KP_Add: return Key_NumPadAdd;
+        case XK_KP_Delete: return Key_NumPadDecimal;
+        case XK_KP_Divide: return Key_NumPadDivide;
+        case XK_KP_Enter: return Key_NumPadEnter;
+        case XK_KP_Equal: return Key_NumPadEqual;
+        case XK_KP_Multiply: return Key_NumPadMultiply;
+        case XK_KP_Subtract: return Key_NumPadSubtract;
+        case XK_Page_Down: return Key_PageDown;
+        case XK_Page_Up: return Key_PageUp;
+        case XK_Pause: return Key_Pause;
+        case XK_period: return Key_Period;
+        case XK_Print: return Key_PrintScreen;
+        case XK_apostrophe: return Key_Quote;
+        case XK_Scroll_Lock: return Key_ScrollLock;
+        case XK_semicolon: return Key_Semicolon;
+        case XK_Shift_L: return Key_LeftShift;
+        case XK_Shift_R: return Key_RightShift;
+        case XK_slash: return Key_Slash;
+        case XK_space: return Key_Space;
+        case XK_Tab: return Key_Tab;
+        default: return Key_Invalid;
     }
 }
 
@@ -530,44 +512,44 @@ struct WindowNative {
 struct GamepadNative {
     int fileDescriptor;
     char *devicePath;
-    struct input_absinfo analogInfos[GAMEPAD_AXIS_COUNT];
+    struct input_absinfo analogInfos[GamepadAxis_Count];
     struct ff_effect rumble;
 };
 
-const int minoAxis2EvdevAxis[GAMEPAD_AXIS_COUNT] = {
-    [GAMEPAD_AXIS_LEFT_STICK_X] = ABS_X,
-    [GAMEPAD_AXIS_LEFT_STICK_Y] = ABS_Y,
-    [GAMEPAD_AXIS_LEFT_TRIGGER] = ABS_Z,
-    [GAMEPAD_AXIS_RIGHT_STICK_X] = ABS_RX,
-    [GAMEPAD_AXIS_RIGHT_STICK_Y] = ABS_RY,
-    [GAMEPAD_AXIS_RIGHT_TRIGGER] = ABS_RZ,
+const int minoAxis2EvdevAxis[GamepadAxis_Count] = {
+    [GamepadAxis_LeftStickX] = ABS_X,
+    [GamepadAxis_LeftStickY] = ABS_Y,
+    [GamepadAxis_LeftTrigger] = ABS_Z,
+    [GamepadAxis_RightStickX] = ABS_RX,
+    [GamepadAxis_RightStickY] = ABS_RY,
+    [GamepadAxis_RightTrigger] = ABS_RZ,
 };
 
-const int evdevAxis2MinoAxis[GAMEPAD_AXIS_COUNT] = {
-    [ABS_X] = GAMEPAD_AXIS_LEFT_STICK_X,
-    [ABS_Y] = GAMEPAD_AXIS_LEFT_STICK_Y,
-    [ABS_Z] = GAMEPAD_AXIS_LEFT_TRIGGER,
-    [ABS_RX] = GAMEPAD_AXIS_RIGHT_STICK_X,
-    [ABS_RY] = GAMEPAD_AXIS_RIGHT_STICK_Y,
-    [ABS_RZ] = GAMEPAD_AXIS_RIGHT_TRIGGER,
+const int evdevAxis2MinoAxis[GamepadAxis_Count] = {
+    [ABS_X] = GamepadAxis_LeftStickX,
+    [ABS_Y] = GamepadAxis_LeftStickY,
+    [ABS_Z] = GamepadAxis_LeftTrigger,
+    [ABS_RX] = GamepadAxis_RightStickX,
+    [ABS_RY] = GamepadAxis_RightStickY,
+    [ABS_RZ] = GamepadAxis_RightTrigger,
 };
 
 GamepadButton evdevButton2MinoButton(int button) {
     switch (button) {
-        case BTN_A: return GAMEPAD_A;
-        case BTN_B: return GAMEPAD_B;
-        case BTN_X: return GAMEPAD_X;
-        case BTN_Y: return GAMEPAD_Y;
-        case BTN_START: return GAMEPAD_START;
-        case BTN_SELECT: return GAMEPAD_SELECT;
-        case BTN_TL: return GAMEPAD_L1;
-        case BTN_TR: return GAMEPAD_R1;
-        case BTN_TL2: return GAMEPAD_L2;
-        case BTN_TR2: return GAMEPAD_R2;
-        case BTN_THUMBL: return GAMEPAD_L3;
-        case BTN_THUMBR: return GAMEPAD_R3;
-        case BTN_MODE: return GAMEPAD_HOME;
-        default: return GAMEPAD_BUTTON_INVALID;
+        case BTN_A: return GamepadButton_A;
+        case BTN_B: return GamepadButton_B;
+        case BTN_X: return GamepadButton_X;
+        case BTN_Y: return GamepadButton_Y;
+        case BTN_START: return GamepadButton_Start;
+        case BTN_SELECT: return GamepadButton_Select;
+        case BTN_TL: return GamepadButton_L1;
+        case BTN_TR: return GamepadButton_R1;
+        case BTN_TL2: return GamepadButton_L2;
+        case BTN_TR2: return GamepadButton_R2;
+        case BTN_THUMBL: return GamepadButton_L3;
+        case BTN_THUMBR: return GamepadButton_R3;
+        case BTN_MODE: return GamepadButton_Home;
+        default: return GamepadButton_Invalid;
     }
 };
 
@@ -620,7 +602,7 @@ replaceGamepad:
     memcpy(gamepad->native->devicePath, devicePath, devicePathLen);
 
 foundGamepad:;
-    for (GamepadAxis i = 0; i < GAMEPAD_AXIS_COUNT; i++) {
+    for (GamepadAxis i = 0; i < GamepadAxis_Count; i++) {
         if (ioctl(fd, EVIOCGABS(minoAxis2EvdevAxis[i]), &gamepad->native->analogInfos[i])) {
             gamepad->native->analogInfos[i] = fallbackInfos;
         };
@@ -646,7 +628,7 @@ static void disconnectController(MinoWindow *window, const char *devicePath) {
     // just zero these out to be safe so, when a controller reconnects, none of
     // the buttons or sticks are still held
     gamepad->buttons = 0;
-    for (int i = 0; i < GAMEPAD_AXIS_COUNT; i++) {
+    for (int i = 0; i < GamepadAxis_Count; i++) {
         gamepad->axes[i] = 0;
     }
 }
@@ -783,54 +765,54 @@ static void refreshControllers(MinoWindow *window) {
 static void setAxis(Gamepad *gamepad, struct input_event event) {
     if (event.code == ABS_HAT0X) {
         if (event.value >= 1) {
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_LEFT);
-            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_RIGHT);
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_Left);
+            gamepad->buttons = setBit(gamepad->buttons, GamepadButton_Right);
         } else if (event.value <= -1) {
-            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_LEFT);
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_RIGHT);
+            gamepad->buttons = setBit(gamepad->buttons, GamepadButton_Left);
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_Right);
         } else {
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_LEFT);
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_RIGHT);
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_Left);
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_Right);
         }
         return;
     } else if (event.code == ABS_HAT0Y) {
         if (event.value >= 1) {
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_DOWN);
-            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_UP);
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_Down);
+            gamepad->buttons = setBit(gamepad->buttons, GamepadButton_Up);
         } else if (event.value <= -1) {
-            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_DOWN);
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_UP);
+            gamepad->buttons = setBit(gamepad->buttons, GamepadButton_Down);
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_Up);
         } else {
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_DOWN);
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_UP);
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_Down);
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_Up);
         }
         return;
     }
-    if (event.code >= GAMEPAD_AXIS_COUNT) return;  // unsupported axis.
+    if (event.code >= GamepadAxis_Count) return;  // unsupported axis.
     GamepadAxis axis = evdevAxis2MinoAxis[event.code];
     struct input_absinfo info = gamepad->native->analogInfos[axis];
-    if (axis == GAMEPAD_AXIS_LEFT_STICK_Y || axis == GAMEPAD_AXIS_RIGHT_STICK_Y) event.value *= -1;
-    if (axis == GAMEPAD_AXIS_LEFT_TRIGGER || axis == GAMEPAD_AXIS_RIGHT_TRIGGER) {
+    if (axis == GamepadAxis_LeftStickY || axis == GamepadAxis_RightStickY) event.value *= -1;
+    if (axis == GamepadAxis_LeftTrigger || axis == GamepadAxis_RightTrigger) {
         gamepad->axes[axis] = clamp((float32)(event.value - info.minimum) / (float32)(info.maximum - info.minimum), 0, 1);
     } else {
         gamepad->axes[axis] = clamp((float32)(event.value - info.minimum) / (float32)(info.maximum - info.minimum) * 2.0 - 1.0, -1, 1);
     }
-    if (axis == GAMEPAD_AXIS_LEFT_TRIGGER) {
+    if (axis == GamepadAxis_LeftTrigger) {
         if (event.value > info.flat)
-            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_L2);
+            gamepad->buttons = setBit(gamepad->buttons, GamepadButton_L2);
         else
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_L2);
-    } else if (axis == GAMEPAD_AXIS_RIGHT_TRIGGER) {
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_L2);
+    } else if (axis == GamepadAxis_RightTrigger) {
         if (event.value > info.flat)
-            gamepad->buttons = setBit(gamepad->buttons, GAMEPAD_R2);
+            gamepad->buttons = setBit(gamepad->buttons, GamepadButton_R2);
         else
-            gamepad->buttons = unsetBit(gamepad->buttons, GAMEPAD_R2);
+            gamepad->buttons = unsetBit(gamepad->buttons, GamepadButton_R2);
     }
 }
 
 static void setButton(Gamepad *gamepad, struct input_event event) {
     GamepadButton button = evdevButton2MinoButton(event.code);
-    if (button == GAMEPAD_BUTTON_INVALID) return;
+    if (button == GamepadButton_Invalid) return;
     if (event.value > 0) {
         gamepad->buttons = setBit(gamepad->buttons, button);
     } else {
@@ -910,16 +892,16 @@ bool WindowUpdate(MinoWindow *window) {
         XNextEvent(native->xDisplay, &event);
         switch (event.type) {
             case Expose: {
+                XWindowAttributes windowAttributes;
+                XGetWindowAttributes(
+                    window->native->xDisplay,
+                    window->native->xWindow,
+                    &windowAttributes);
+
                 window->width = windowAttributes.width;
                 window->height = windowAttributes.height;
 
                 if (window->native->glContext) {
-                    XWindowAttributes windowAttributes;
-                    XGetWindowAttributes(
-                        window->native->xDisplay,
-                        window->native->xWindow,
-                        &windowAttributes);
-
                     glViewport(
                         0, 0,
                         windowAttributes.width,
@@ -935,13 +917,13 @@ bool WindowUpdate(MinoWindow *window) {
             case ButtonPress: {
                 switch (event.xbutton.button) {
                     case 1:
-                        window->mousePressed = setBit(window->mousePressed, MOUSE_LEFT);
+                        window->mousePressed = setBit(window->mousePressed, MouseButton_Left);
                         break;
                     case 2:
-                        window->mousePressed = setBit(window->mousePressed, MOUSE_MIDDLE);
+                        window->mousePressed = setBit(window->mousePressed, MouseButton_Middle);
                         break;
                     case 3:
-                        window->mousePressed = setBit(window->mousePressed, MOUSE_RIGHT);
+                        window->mousePressed = setBit(window->mousePressed, MouseButton_Right);
                         break;
                     case 4:
                         window->scrollY++;
@@ -956,10 +938,10 @@ bool WindowUpdate(MinoWindow *window) {
                         window->scrollX++;
                         break;
                     case 8:
-                        window->mousePressed = setBit(window->mousePressed, MOUSE_BACK);
+                        window->mousePressed = setBit(window->mousePressed, MouseButton_Back);
                         break;
                     case 9:
-                        window->mousePressed = setBit(window->mousePressed, MOUSE_FORWARD);
+                        window->mousePressed = setBit(window->mousePressed, MouseButton_Forward);
                         break;
                 }
                 break;
@@ -968,19 +950,19 @@ bool WindowUpdate(MinoWindow *window) {
             case ButtonRelease: {
                 switch (event.xbutton.button) {
                     case 1:
-                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_LEFT);
+                        window->mousePressed = unsetBit(window->mousePressed, MouseButton_Left);
                         break;
                     case 2:
-                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_MIDDLE);
+                        window->mousePressed = unsetBit(window->mousePressed, MouseButton_Middle);
                         break;
                     case 3:
-                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_RIGHT);
+                        window->mousePressed = unsetBit(window->mousePressed, MouseButton_Right);
                         break;
                     case 8:
-                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_BACK);
+                        window->mousePressed = unsetBit(window->mousePressed, MouseButton_Back);
                         break;
                     case 9:
-                        window->mousePressed = unsetBit(window->mousePressed, MOUSE_FORWARD);
+                        window->mousePressed = unsetBit(window->mousePressed, MouseButton_Forward);
                         break;
                 }
             } break;
@@ -989,27 +971,27 @@ bool WindowUpdate(MinoWindow *window) {
             case KeyRelease: {
                 KeySym keySymbol = XkbKeycodeToKeysym(native->xDisplay, event.xkey.keycode, 0, 0);
                 Key key = XKey2MinoKey(keySymbol);
-                if (key == KEY_INVALID) break;
+                if (key == Key_Invalid) break;
 
                 window->keyPressed[key] = event.type == KeyPress;
 
-                if (key == KEY_LEFT_CONTROL || key == KEY_RIGHT_CONTROL)
-                    window->keyPressed[KEY_CONTROL] = (window->keyPressed[KEY_LEFT_CONTROL] || window->keyPressed[KEY_RIGHT_CONTROL]);
-                else if (key == KEY_LEFT_SHIFT || key == KEY_RIGHT_SHIFT)
-                    window->keyPressed[KEY_SHIFT] = (window->keyPressed[KEY_LEFT_SHIFT] || window->keyPressed[KEY_RIGHT_SHIFT]);
-                else if (key == KEY_LEFT_WIN || key == KEY_RIGHT_WIN)
-                    window->keyPressed[KEY_WIN] = (window->keyPressed[KEY_LEFT_WIN] || window->keyPressed[KEY_RIGHT_WIN]);
-                else if (key == KEY_LEFT_ALT || key == KEY_RIGHT_ALT)
-                    window->keyPressed[KEY_ALT] = (window->keyPressed[KEY_LEFT_ALT] || window->keyPressed[KEY_RIGHT_ALT]);
+                if (key == Key_LeftCtrl || key == Key_RightCtrl)
+                    window->keyPressed[Key_Ctrl] = (window->keyPressed[Key_LeftCtrl] || window->keyPressed[Key_RightCtrl]);
+                else if (key == Key_LeftShift || key == Key_RightShift)
+                    window->keyPressed[Key_Shift] = (window->keyPressed[Key_LeftShift] || window->keyPressed[Key_RightShift]);
+                else if (key == Key_LeftWin || key == Key_RightWin)
+                    window->keyPressed[Key_Win] = (window->keyPressed[Key_LeftWin] || window->keyPressed[Key_RightWin]);
+                else if (key == Key_LeftAlt || key == Key_RightAlt)
+                    window->keyPressed[Key_Alt] = (window->keyPressed[Key_LeftAlt] || window->keyPressed[Key_RightAlt]);
 
-                window->keyModifier =
-                    (window->keyPressed[KEY_WIN] ? MOD_WIN : 0) |
-                    (window->keyPressed[KEY_ALT] ? MOD_ALT : 0) |
-                    (window->keyPressed[KEY_SHIFT] ? MOD_SHIFT : 0) |
-                    (window->keyPressed[KEY_CONTROL] ? MOD_CONTROL : 0) |
-                    (bitSet(event.xkey.state, LockMapIndex) ? MOD_CAPS_LOCK : 0) |
-                    (bitSet(event.xkey.state, Mod2MapIndex) ? MOD_NUM_LOCK : 0) |
-                    (bitSet(event.xkey.state, Mod5MapIndex) ? MOD_SCROLL_LOCK : 0);
+                window->KeyMod =
+                    (window->keyPressed[Key_Win] ? KeyMod_Win : 0) |
+                    (window->keyPressed[Key_Alt] ? KeyMod_Alt : 0) |
+                    (window->keyPressed[Key_Shift] ? KeyMod_Shift : 0) |
+                    (window->keyPressed[Key_Ctrl] ? KeyMod_Ctrl : 0) |
+                    (bitSet(event.xkey.state, LockMapIndex) ? KeyMod_CapsLock : 0) |
+                    (bitSet(event.xkey.state, Mod2MapIndex) ? KeyMod_NumLock : 0) |
+                    (bitSet(event.xkey.state, Mod5MapIndex) ? KeyMod_ScrollLock : 0);
 
                 if (event.type == KeyPress) {
                     char buffer[sizeof(rune)];

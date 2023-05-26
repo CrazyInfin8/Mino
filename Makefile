@@ -9,7 +9,7 @@ ifeq ($(OS),Windows_NT)
 PLATFORM:=PLATFORM_Windows
 EXE:=$(EXE_NAME).exe
 LIBS:=-lgdi32 -lwinmm -lopengl32 -lxinput
-OPTIMIZE_FLAGS:=-MD -Os -s -fno-asynchronous-unwind-tables -fno-tree-loop-distribute-patterns -fno-stack-check -fno-stack-protector -mno-stack-arg-probe -ffunction-sections -fdata-sections -Wl,--gc-sections -falign-functions=1 -falign-loops=1 -fno-math-errno -fno-unroll-loops -fmerge-all-constants -fno-ident -mfancy-math-387 -ffast-math -unwindlib=none -mwindows -DNOPRINT # -nostdlib
+OPTIMIZE_FLAGS:=-MD -Os -s -fno-asynchronous-unwind-tables -fno-tree-loop-distribute-patterns -fno-stack-check -DNOPRINT  -mwindows -Wl,--gc-sections -unwindlib=none -fno-math-errno -fno-unroll-loops -fno-ident -mfancy-math-387 -ffast-math -falign-functions=1 -falign-loops=1 -fmerge-all-constants -ffunction-sections -fdata-sections -fno-stack-protector  #-mno-stack-arg-probe -nostdlib
 OPTIMIZED_EXE:=$(EXE_NAME).opt.exe
 COMPRESSED_EXE:=$(EXE_NAME).upx.exe
 else # OS == Windows_NT
