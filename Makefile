@@ -30,8 +30,8 @@ endif # PLATFORM == nil
 build: $(EXE) .PHONY
 
 
-$(EXE): src/*.c includes/*.h
-	$(CC) src/*.c $(LIBS) -D$(PLATFORM) -Wall -Wextra -Iincludes -g -o $@
+$(EXE): src/*.c project/*.c includes/*.h
+	$(CC) src/*.c project/*.c $(LIBS) -D$(PLATFORM) -Wall -Wextra -Iincludes -g -o $@
 
 run: $(EXE) .PHONY
 	./$(EXE)
@@ -41,8 +41,8 @@ valgrind: $(EXE) .PHONY
 
 release: $(OPTIMIZED_EXE) .PHONY
 
-$(OPTIMIZED_EXE): src/*.c includes/*.h
-	$(CC) src/*.c $(LIBS) -D$(PLATFORM) $(OPTIMIZE_FLAGS) -Wall -Wextra -Iincludes -o $@
+$(OPTIMIZED_EXE): src/*.c project/*.c includes/*.h
+	$(CC) src/*.c project/*.c $(LIBS) -D$(PLATFORM) $(OPTIMIZE_FLAGS) -Wall -Wextra -Iincludes -o $@
 
 compressed: $(COMPRESSED_EXE) .PHONY
 
@@ -54,6 +54,15 @@ size: $(EXE) $(OPTIMIZED_EXE) $(COMPRESSED_EXE) .PHONY
 	@echo "Unoptimized Size:" `wc -c < $(EXE) | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'`
 	@echo "Optimized Size:  " `wc -c < $(OPTIMIZED_EXE) | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'`
 	@echo "Compressed Size: " `wc -c < $(COMPRESSED_EXE) | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'`
+
+project/mino.c: tools/AmalgamateSrc/mino.c
+	go run tools/amalgamate.go tools/AmalgamateSrc/mino.c -oproject/mino.c -Iincludes
+
+project/mino.h: tools/AmalgamateSrc/mino.h
+	go run tools/amalgamate.go tools/AmalgamateSrc/mino.h -oproject/mino.h -Iincludes 
+
+amalgamation: project/mino.c project/mino.h
+	@echo "Amalgamation files built to project folder"
 
 clean: .PHONY
 	rm -f $(EXE)
