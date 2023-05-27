@@ -176,7 +176,15 @@ static LRESULT CALLBACK WindowProcedure(HWND windowHandle, UINT msg, WPARAM wPar
     return 0;
 }
 
+int64 minPeriod = 0;
 bool WindowInit(Window *window, WindowConfig config) {
+    if (minPeriod == 0) {
+        TIMECAPS timeCapabilities;
+        if (timeGetDevCaps(&timeCapabilities, sizeof(TIMECAPS)) == MMSYSERR_NOERROR) {
+            minPeriod = timeCapabilities.wPeriodMin;
+        };
+    }
+
     HINSTANCE instance = GetModuleHandle(nil);
     WNDCLASSEX windowClass = {
         .cbSize = sizeof(WNDCLASSEX),
@@ -277,7 +285,6 @@ bool WindowUpdate(Window *window) {
 
 void WindowClose(Window *window) {
     GamepadListFree(&window->gamepads);
-
     if (window->native == nil) return;
 
     if (window->native->windowHandle) {
@@ -296,7 +303,16 @@ int64 WindowTime() {
 }
 
 void WindowSleep(int64 milliseconds) {
-    Sleep(milliseconds);
+    const int64 startTime = WindowTime();
+    if (milliseconds == 0) return;
+    if (minPeriod > 0 && milliseconds - 1 > minPeriod) {
+        timeBeginPeriod(minPeriod);
+        Sleep(milliseconds - 1);
+        timeEndPeriod(minPeriod);
+    }
+    while (WindowTime() < startTime + milliseconds) {
+        // Spin-lock rest of time to precisely match milliseconds.
+    }
 }
 
 bool GraphicsInit(Window *window) {

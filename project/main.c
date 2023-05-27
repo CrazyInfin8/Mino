@@ -1,22 +1,25 @@
 #include <math.h>
 
-#include "../amalgamate.h"
-// #include "aff3.h"
-// #include "audio.h"
-// #include "consts.h"
-// #include "gamepad.h"
-// #include "graphics.h"
-// #include "keyboard.h"
-// #include "mouse.h"
-// #include "synth.h"
-// #include "types.h"
-// #include "utils.h"
-// #include "window.h"
+// #include "../amalgamate.h"
+#include "aff3.h"
+#include "audio.h"
+#include "consts.h"
+#include "gamepad.h"
+#include "graphics.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "synth.h"
+#include "types.h"
+#include "utils.h"
+#include "window.h"
 
 #include <GL/gl.h>
+#include <stdbool.h>
 
 Window window;
 Audio audio;
+
+const int INTERVAL = 1000 / 60;
 
 typedef struct Synth {
     Phasor phasor;
@@ -28,102 +31,82 @@ Synth synth = {
     .phasor = {
         .phaseInterval = 261.63 / AUDIO_SAMPLE_RATE,
     },
-    .notes = {
-    },
+    .notes = {},
     .oscillator = {
         .type = SineOscillator,
     },
 };
 
+void loop(float32 dt);
+
 int main(void) {
-    println("Starting game");
-    if (WindowInit(&window, (WindowConfig){"Mino Demo Game Window", 800, 600}) == false) {
-        println("Could not open the window");
-        return 1;
-    }
-    // if (AudioInit(&audio) == false) {
-    //     println("Could not open Audio");
-    //     WindowClose(&window);
-    //     return 1;
+    if (WindowInit(&window,
+            (WindowConfig){
+                .width = 1280,
+                .height = 800,
+                .title = "Quantum Leap",
+            }) == false) goto errWindow;
+    if (AudioInit(&audio) == false) goto errAudio;
+    if (GraphicsInit(&window) == false) goto errGraphics;
+
+    // int64 prevTime = WindowTime();
+    // while (WindowUpdate(&window)) {
+    //     int64 nextTime = prevTime + INTERVAL;
+    //     int64 currTime = WindowTime();
+
+    //     loop((float32)(currTime - prevTime) / 1000);
+
+    //     int64 waitTime = nextTime - WindowTime();
+    //     println("PrevTime: %lld, CurrTime: %lld, NextTime: %lld, WaitTime: %lld", prevTime, currTime, nextTime, waitTime);
+    //     if (waitTime > 0) {
+    //         println("Sleeping");
+    //         WindowSleep(waitTime);
+    //     }
+    //     prevTime = currTime;
     // }
-    if (GraphicsInit(&window) == false) {
-        println("Could not open Graphics");
-        AudioClose(&audio);
-        WindowClose(&window);
-        return 1;
-    }
 
-    while (WindowUpdate(&window)) {
-        int64 begin = WindowTime();
+    const int INTERVAL = 1000 / 60;
+    int64 prevTime = WindowTime();
+    int64 nextTime = 0;
+    bool running;
+    do {
+        // while (nextTime > WindowTime()) {}
+        int64 waitTime = nextTime - WindowTime();
+        if (waitTime > 0) WindowSleep(waitTime);
 
-        // int availableAudio = AudioAvailable(&audio);
-        // if (availableAudio > 0) {
-        //     float32 buffer[AUDIO_BUFFER_SIZE];
-        //     PhasorStream(&synth.phasor, buffer, availableAudio);
-
-        //     OscillatorStream(synth.oscillator, buffer, availableAudio);
-
-        //     AudioWrite(&audio, buffer, availableAudio);
-        // }
-
-        if (MouseJustPressed(&window, MouseButton_Left)) println("Left just pressed");
-        if (MouseJustPressed(&window, MouseButton_Right)) println("Right just pressed");
-        if (MouseJustPressed(&window, MouseButton_Middle)) println("Middle just pressed");
-        if (MouseJustPressed(&window, MouseButton_Forward)) println("Forward just pressed");
-        if (MouseJustPressed(&window, MouseButton_Back)) println("Back just pressed");
-
-        if (MouseJustReleased(&window, MouseButton_Left)) println("Left just released");
-        if (MouseJustReleased(&window, MouseButton_Right)) println("Right just released");
-        if (MouseJustReleased(&window, MouseButton_Middle)) println("Middle just released");
-        if (MouseJustReleased(&window, MouseButton_Forward)) println("Forward just released");
-        if (MouseJustReleased(&window, MouseButton_Back)) println("Back just released");
-
-        if (window.scrollX != 0 || window.scrollY != 0) println("Scroll = { X: %d, Y: %d }", window.scrollX, window.scrollY);
-
-        for (int i = 0; i < Key_Count; i++) {
-            if (KeyJustPressed(&window, i)) {
-                println("Key %d just pressed", i);
-            }
-            if (KeyJustReleased(&window, i)) {
-                println("Key %d just released", i);
-            }
-        }
-        rune c = KeyGetChar(&window);
-        if (c) println("You typed: %c", c);
-
-        print("Mouse: { X: %d, Y: %d }\r", window.mouseX, window.mouseY);
-
-        Gamepad *gamepad;
-        for (int i = 0, l = GamepadCount(&window); i < l; i++) {
-            gamepad = WindowGetGamepad(&window, i);
-            if (gamepad->connected == false) continue;
-            GamepadSetVibration(gamepad,
-                GamepadAxisValue(gamepad, GamepadAxis_LeftTrigger),
-                GamepadAxisValue(gamepad, GamepadAxis_RightTrigger));
+        int64 currTime = WindowTime();
+        int64 elapsedTime = currTime - prevTime;
+        prevTime = currTime;
+        nextTime = prevTime + INTERVAL;
+        while (nextTime < currTime) {
+            prevTime += INTERVAL;
         }
 
-        GraphicsMakeCurrent(&window);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glBegin(GL_TRIANGLES);
-        {
-            glColor4ub(0xFF, 0x00, 0x00, 0xFF);
-            glVertex3f(0, 1, 0);
+        loop((float32)elapsedTime / 1000);
+        running = WindowUpdate(&window);
 
-            glColor4ub(0x00, 0xFF, 0x00, 0xFF);
-            glVertex3f(1, -1, 0);
+        prevTime = currTime;
+    } while (running);
 
-            glColor4ub(0x00, 0x00, 0xFF, 0xFF);
-            glVertex3f(-1, -1, 0);
-        }
-        glEnd();
-
-        int64 now = WindowTime();
-        if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {
-            WindowSleep(1000 / 60 - (now - begin));
-        }
-    }
     GraphicsClose(&window);
-    // AudioClose(&audio);
+    AudioClose(&audio);
     WindowClose(&window);
+
     return 0;
+
+    // Deinitialize on error cases
+errGraphics:
+    AudioClose(&audio);
+errAudio:
+    WindowClose(&window);
+errWindow:
+    return 1;
+}
+
+float32 sum;
+int n = 0;
+void loop(float32 dt) {
+    sum += dt;
+    n++;
+    println("Delta time is: %.09f, fps: %.4f, avg: %.09f, avgFps: %0.4f", dt, 1 / dt, sum / n, 1 / (sum / n));
 }
