@@ -15,7 +15,7 @@ COMPRESSED_EXE:=$(EXE_NAME).upx.exe
 else # OS == Windows_NT
 UNAME:=$(shell uname -s)
 EXE=$(EXE_NAME)
-OPTIMIZE_FLAGS:=-MD -Os -s -fno-asynchronous-unwind-tables -fno-tree-loop-distribute-patterns -fno-stack-check -fno-stack-protector -mno-stack-arg-probe -ffunction-sections -fdata-sections -Wl,--gc-sections -falign-functions=1 -falign-loops=1 -fno-math-errno -fno-unroll-loops -fmerge-all-constants -fno-ident -mfancy-math-387 -ffast-math -unwindlib=none -DNOPRINT
+OPTIMIZE_FLAGS:=-MD -Os -s -fno-asynchronous-unwind-tables -fno-stack-check -fno-stack-protector -mno-stack-arg-probe -ffunction-sections -fdata-sections -Wl,--gc-sections -falign-functions=1 -falign-loops=1 -fno-math-errno -fno-unroll-loops -fmerge-all-constants -fno-ident -mfancy-math-387 -ffast-math -unwindlib=none -DNOPRINT -flto -finline-limit=512 -fno-unroll-loops -fno-tree-loop-distribute-patterns 
 OPTIMIZED_EXE:=$(EXE_NAME).opt
 COMPRESSED_EXE:=$(EXE_NAME).upx
 ifeq ($(UNAME),Linux)
@@ -25,13 +25,18 @@ endif # UNAME == Linux
 endif # OS != Windows_NT
 endif # PLATFORM == nil
 
+# --- Dependancies ---
+
+# BROTLI:=-Iproject/brotli/include project/brotli/dec/*.c project/brotli/common/*.c
+DEPS:= # $(BROTLI)
+
 # --- Makefile build rules ---
 
 build: $(EXE) .PHONY
 
 
 $(EXE): src/*.c project/*.c includes/*.h
-	$(CC) src/*.c project/*.c $(LIBS) -D$(PLATFORM) -Wall -Wextra -Iincludes -g -o $@
+	$(CC) src/*.c project/*.c $(LIBS) -D$(PLATFORM) -Wall -Wextra -Iincludes $(DEPS) -g -o $@
 
 run: $(EXE) .PHONY
 	./$(EXE)
@@ -42,7 +47,7 @@ valgrind: $(EXE) .PHONY
 release: $(OPTIMIZED_EXE) .PHONY
 
 $(OPTIMIZED_EXE): src/*.c project/*.c includes/*.h
-	$(CC) src/*.c project/*.c $(LIBS) -D$(PLATFORM) $(OPTIMIZE_FLAGS) -Wall -Wextra -Iincludes -o $@
+	$(CC) src/*.c project/*.c $(LIBS) -D$(PLATFORM) $(OPTIMIZE_FLAGS) -Wall -Wextra -Iincludes $(DEPS) -o $@
 
 compressed: $(COMPRESSED_EXE) .PHONY
 

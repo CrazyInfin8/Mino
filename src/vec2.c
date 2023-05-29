@@ -10,7 +10,7 @@ extern inline Vec2 Vec2TransformAff3(Vec2 this, Aff3 aff3) {
 
 Vec2 Vec2Rotate(Vec2 this, Vec2 pivot, float32 angle) {
     angle *= TO_RAD;
-    float32 sin = sinf(angle), cos = sinf(angle);
+    float32 sin = sinf(angle), cos = cosf(angle);
     float32 dx = this.X - pivot.X;
     float32 dy = this.Y - pivot.Y;
 

@@ -11,9 +11,12 @@
 #include "synth.h"
 #include "types.h"
 #include "utils.h"
+#include "vec2.h"
 #include "window.h"
 
+#define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
+#include <GL/glext.h>
 #include <stdbool.h>
 
 Window window;
@@ -37,7 +40,8 @@ Synth synth = {
     },
 };
 
-void loop(float32 dt);
+void setup();
+bool loop(float32 dt);
 
 int main(void) {
     if (WindowInit(&window,
@@ -65,6 +69,12 @@ int main(void) {
     //     prevTime = currTime;
     // }
 
+    setup();
+
+    GraphicsMakeCurrent(&window);
+    glEnable(GL_STENCIL_TEST);
+    glEnable(GL_SCISSOR_TEST);
+
     const int INTERVAL = 1000 / 60;
     int64 prevTime = WindowTime();
     int64 nextTime = 0;
@@ -82,8 +92,7 @@ int main(void) {
             prevTime += INTERVAL;
         }
 
-        loop((float32)elapsedTime / 1000);
-        running = WindowUpdate(&window);
+        running = loop((float32)elapsedTime / 1000) && WindowUpdate(&window);
 
         prevTime = currTime;
     } while (running);
@@ -103,10 +112,138 @@ errWindow:
     return 1;
 }
 
+#define NANOVG_GL2_IMPLEMENTATION
+#define NVG_NO_STB
+#include "nanovg/nanovg.h"
+#include "nanovg/nanovg_gl.h"
+
+NVGcontext *vg;
+void setup() {
+    vg = nvgCreateGL2(NVG_STENCIL_STROKES | NVG_DEBUG);
+}
+
+void drawPolygon(float32 radius, int sides) {
+    // nvgBeginPath(vg);
+    Vec2 vec = (Vec2){radius, 0};
+
+    float32 angle = (float32)360 / (float32)sides;
+
+    nvgMoveTo(vg, vec.X, vec.Y);
+    for (int i = 0; i < sides; i++) {
+        vec = Vec2Rotate(
+            vec,
+            (Vec2){0, 0},
+            -angle);
+        nvgLineTo(vg, vec.X, vec.Y);
+    }
+    nvgClosePath(vg);
+    // nvgFill(vg);
+}
+
+void drawCog(float rad1, float rad2, int sides) {
+    nvgSave(vg);
+
+    nvgBeginPath(vg);
+    {
+        Vec2 vec1 = {0, rad1}, vec2 = {0, rad2};
+
+        float32 angle = (float32)360 / (float32)sides;
+
+        nvgMoveTo(vg, vec1.X, vec1.Y);
+        for (int i = 0; i < sides; i++) {
+            nvgLineTo(vg, vec2.X, vec2.Y);
+            vec2 = Vec2Rotate(vec2, (Vec2){0, 0}, angle);
+            nvgLineTo(vg, vec2.X, vec2.Y);
+            vec1 = Vec2Rotate(vec1, (Vec2){0, 0}, angle);
+            nvgLineTo(vg, vec1.X, vec1.Y);
+            vec1 = Vec2Rotate(vec1, (Vec2){0, 0}, angle);
+            nvgLineTo(vg, vec1.X, vec1.Y);
+            vec2 = Vec2Rotate(vec2, (Vec2){0, 0}, angle);
+        }
+        nvgClosePath(vg);
+    }
+    nvgStrokeColor(vg, (NVGcolor ) {{{1, 0.75, 0.25, 1}}});
+    nvgStroke(vg);
+
+    nvgRestore(vg);
+}
+
+void drawBG(Vec2 offset) {
+    nvgSave(vg);
+    nvgReset(vg);
+
+    if (false) {
+        offset.X;
+    }
+    // nvgBeginPath(vg);
+    // {
+    //     // nvgRect(vg, 0, 0, window.width, window.height);
+    // }
+    // nvgFillColor(vg, nvgRGB(255, 255, 255));
+
+    // for (int i = 0; i < offse)
+    nvgFill(vg);
+
+    nvgRestore(vg);
+}
+
+float32 i;
+
+void drawPlayButton(int x, int y) {
+    nvgSave(vg);
+
+    nvgTranslate(vg, x, y);
+
+    nvgBeginPath(vg);
+    {
+        nvgCircle(vg, 0, 0, 100);
+    }
+    nvgFillColor(vg, (NVGcolor){{{0.25, 0.75, 1, 1}}});
+    nvgFill(vg);
+
+    // nvgBeginPath(vg);
+    // {
+    //     nvgArc(vg, x, y, 75. + (25. / 2.), 0, PI_2, NVG_CW);
+    // }
+    // nvgStrokeColor(vg, (NVGcolor){{{1, 1, 1, 1}}});
+    // nvgStrokeWidth(vg, 25);
+    // nvgStroke(vg);
+
+    nvgBeginPath(vg);
+    {
+        drawPolygon(50, 3);
+    }
+    nvgFillColor(vg, (NVGcolor){{{1, 1, 1, 1}}});
+    nvgFill(vg);
+
+    nvgRestore(vg);
+}
+
+// void drawSettingsButton(int x, int y) {}
+
 float32 sum;
 int n = 0;
-void loop(float32 dt) {
+bool loop(float32 dt) {
     sum += dt;
     n++;
-    println("Delta time is: %.09f, fps: %.4f, avg: %.09f, avgFps: %0.4f", dt, 1 / dt, sum / n, 1 / (sum / n));
+    // println("Delta time is: %.09f, fps: %.4f, avg: %.09f, avgFps: %0.4f", dt, 1 / dt, sum / n, 1 / (sum / n));
+    GraphicsMakeCurrent(&window);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glViewport(0, 0, window.width, window.height);
+
+    nvgBeginFrame(vg, window.width, window.height, 1);
+    {
+        // drawBG((Vec2){0, 0});
+        drawPlayButton(window.width / 2, window.height / 2);
+
+        nvgTranslate(vg, (float32)window.width / 2, (float32)window.height / 2);
+        // drawCog();
+
+        nvgTranslate(vg, 100, 100);
+        drawCog(25, 35, 16);
+    }
+    nvgEndFrame(vg);
+    return true;
 }
+
+#include "nanovg/nanovg.c"
