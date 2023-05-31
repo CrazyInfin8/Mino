@@ -31,5 +31,10 @@ typedef struct Shape {
 void drawShape(Shape const* shape);
 void drawShapeTransformed(Shape const* shape, Vec2 position, float32 scale, float32 angle, Color stroke);
 
+extern const Shape assets_asteroid__svg;
+extern const Shape assets_play__svg;
+extern const Shape assets_quit__svg;
+extern const Shape assets_settings__svg;
+extern const Shape assets_ship__svg;
 
 #endif

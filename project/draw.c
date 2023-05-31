@@ -72,19 +72,19 @@ void drawShape(Shape const* shape) {
 void drawShapeTransformed(Shape const* shape, Vec2 position, float32 scale, float32 angle, Color stroke) {
     nvgSave(vg);
 
-
     nvgSave(vg);
-    nvgScale(vg, scale, scale);
+    // nvgScale(vg, scale, scale);
     nvgBeginPath(vg);
     nvgCircle(vg, position.X, position.Y, 5);
     nvgFillColor(vg, nvgRGB(0xff, 0, 0));
     nvgFill(vg);
     nvgRestore(vg);
 
+    nvgTranslate(vg, position.X, position.Y);
+    // nvgTranslate(vg, 250 * scale, 250 * scale);
+    nvgRotate(vg, angle);
     nvgTranslate(vg, -250 * scale, -250 * scale);
     nvgScale(vg, scale, scale);
-    nvgRotate(vg, angle);
-    nvgTranslate(vg, position.X, position.Y);
 
     nvgBeginPath(vg);
     for (int i = 0; i < shape->len; i++) {

@@ -126,7 +126,7 @@ bool ListShift(List* list, void* dest) {
             .data = list->data,
             .itemSize = list->itemSize,
             .cap = list->cap,
-            .len = list->len + 1,
+            .len = list->len - 1,
         },
         sizeof(List));
     // clean end of list
