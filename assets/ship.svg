@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 500 500" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 0 500 L 150 250 L 150 100 C 150 44.772 194.772 0 250 0 C 305.228 0 350 44.772 350 100 L 350 250 L 500 500 L 350 450 L 350 500 L 150 500 L 150 450 L 0 500 Z" style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);"/>
+</svg>

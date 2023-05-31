@@ -117,28 +117,12 @@ errWindow:
 #include "nanovg/nanovg.h"
 #include "nanovg/nanovg_gl.h"
 
-NVGcontext *vg;
+NVGcontext* vg;
 void setup() {
     vg = nvgCreateGL2(NVG_STENCIL_STROKES | NVG_DEBUG);
 }
 
-void drawPolygon(float32 radius, int sides) {
-    // nvgBeginPath(vg);
-    Vec2 vec = (Vec2){radius, 0};
-
-    float32 angle = (float32)360 / (float32)sides;
-
-    nvgMoveTo(vg, vec.X, vec.Y);
-    for (int i = 0; i < sides; i++) {
-        vec = Vec2Rotate(
-            vec,
-            (Vec2){0, 0},
-            -angle);
-        nvgLineTo(vg, vec.X, vec.Y);
-    }
-    nvgClosePath(vg);
-    // nvgFill(vg);
-}
+void drawPolygon(float32 radius, int sides);
 
 void drawCog(float rad1, float rad2, int sides) {
     nvgSave(vg);
@@ -162,30 +146,30 @@ void drawCog(float rad1, float rad2, int sides) {
         }
         nvgClosePath(vg);
     }
-    nvgStrokeColor(vg, (NVGcolor ) {{{1, 0.75, 0.25, 1}}});
+    nvgStrokeColor(vg, (NVGcolor){{{1, 0.75, 0.25, 1}}});
     nvgStroke(vg);
 
     nvgRestore(vg);
 }
 
-void drawBG(Vec2 offset) {
-    nvgSave(vg);
-    nvgReset(vg);
+// void drawBG(Vec2 offset) {
+//     nvgSave(vg);
+//     nvgReset(vg);
 
-    if (false) {
-        offset.X;
-    }
-    // nvgBeginPath(vg);
-    // {
-    //     // nvgRect(vg, 0, 0, window.width, window.height);
-    // }
-    // nvgFillColor(vg, nvgRGB(255, 255, 255));
+//     if (false) {
+//         // offset.X;
+//     }
+//     // nvgBeginPath(vg);
+//     // {
+//     //     // nvgRect(vg, 0, 0, window.width, window.height);
+//     // }
+//     // nvgFillColor(vg, nvgRGB(255, 255, 255));
 
-    // for (int i = 0; i < offse)
-    nvgFill(vg);
+//     // for (int i = 0; i < offse)
+//     nvgFill(vg);
 
-    nvgRestore(vg);
-}
+//     nvgRestore(vg);
+// }
 
 float32 i;
 
@@ -220,9 +204,49 @@ void drawPlayButton(int x, int y) {
 }
 
 // void drawSettingsButton(int x, int y) {}
+#include "./svg.h"
+
+extern const Shape assets_ship__svg;
+extern const Shape assets_settings__svg;
+
+struct {
+    Vec2 position, velocity, acceleration;
+
+} player = {};
 
 float32 sum;
 int n = 0;
+
+void update(float32 dt) {
+    Gamepad* gamepad = WindowGetGamepad(&window, 0);
+    Vec2 accel = {0, 0};
+    bool shoot, boost, teleport;
+    if (gamepad != nil) {
+        accel.X = GamepadAxisValue(gamepad, GamepadAxis_LeftStickX) * 300;
+        accel.Y = GamepadAxisValue(gamepad, GamepadAxis_LeftStickY) * -300;
+    }
+    if (accel.X == 0 && accel.Y == 0) {
+        if (KeyPressed(&window, Key_A)) accel.X-=300;
+        if (KeyPressed(&window, Key_D)) accel.X+=300;
+        if (KeyPressed(&window, Key_W)) accel.Y-=300;
+        if (KeyPressed(&window, Key_S)) accel.Y+=300;
+    }
+    player.acceleration = accel;
+    player.velocity.X += player.acceleration.X * dt;
+    player.velocity.Y += player.acceleration.Y * dt;
+    player.position.X += player.velocity.X * dt;
+    player.position.Y += player.velocity.Y * dt;
+}
+
+void draw() {
+    println("{ X: %f; Y: %f }", player.position.X, player.position.Y);
+    drawShapeTransformed(
+        &assets_ship__svg,
+        player.position,
+        0.25, 0,
+        ColorHex(0xFFABCDEF));
+}
+
 bool loop(float32 dt) {
     sum += dt;
     n++;
@@ -233,14 +257,27 @@ bool loop(float32 dt) {
 
     nvgBeginFrame(vg, window.width, window.height, 1);
     {
-        // drawBG((Vec2){0, 0});
-        drawPlayButton(window.width / 2, window.height / 2);
+        update(dt);
 
-        nvgTranslate(vg, (float32)window.width / 2, (float32)window.height / 2);
-        // drawCog();
+        nvgSave(vg);
 
-        nvgTranslate(vg, 100, 100);
-        drawCog(25, 35, 16);
+        draw();
+        // // drawBG((Vec2){0, 0});
+        // drawPlayButton(window.width / 2, window.height / 2);
+
+        // nvgTranslate(vg, (float32)window.width / 2, (float32)window.height / 2);
+        // // drawCog();
+
+        nvgTranslate(vg, window.mouseX, window.mouseY);
+        // nvgScale(vg, 0.25, 0.25);
+        // drawCog(25, 35, 16);
+        nvgBeginPath(vg);
+        drawShape(&assets_settings__svg);
+        nvgStrokeColor(vg, (NVGcolor){{{1, 0.75, 0.25, 1}}});
+        nvgStrokeWidth(vg, 1);
+        nvgStroke(vg);
+
+        nvgRestore(vg);
     }
     nvgEndFrame(vg);
     return true;
