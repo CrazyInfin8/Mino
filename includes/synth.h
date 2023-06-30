@@ -22,10 +22,13 @@ typedef enum OscillatorType {
 
 typedef union OscillatorOptions {
     struct SineOptions {
+        int freq;
     } sine;
     struct SawOptions {
+        int freq;
     } saw;
     struct SquareOptions {
+        int freq;
     } square;
 } OscillatorOptions;
 

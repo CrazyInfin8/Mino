@@ -2,13 +2,19 @@
 #include "utils.h"
 #include <stdbool.h>
 #include <string.h>
-#include <strings.h>
+#include <stdio.h>
 
-void copy(const void *restrict src, void *restrict dst, size_t size) {
+#ifdef PLATFORM_Windows
+// #include <cstring>
+#else
+#include <strings.h>
+#endif
+
+void copy(const void * src, void * dst, size size) {
     memcpy(dst, src, size);
 }
 
-void copyPad(const void *restrict src, void *restrict dst, size_t size) {
+void copyPad(const void * src, void * dst, size size) {
     if (src == nil) {
         for (uint32 i = 0; i < size; i++) {
             ((byte *)dst)[i] = '\0';
@@ -29,7 +35,7 @@ bool bitSet(uint64 bits, uint8 index) {
 }
 
 bool bitUnset(uint64 bits, uint8 index) {
-    uint64 mask = 1 << (uint64)index;
+    uint64 mask = (uint64)1 << (uint64)index;
     return (bits & mask) != mask;
 }
 

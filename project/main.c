@@ -1,18 +1,18 @@
 #include <math.h>
 
-#include "../amalgamate.h"
-// #include "aff3.h"
-// #include "audio.h"
-// #include "consts.h"
-// #include "gamepad.h"
-// #include "graphics.h"
-// #include "keyboard.h"
-// #include "mouse.h"
-// #include "synth.h"
-// #include "types.h"
-// #include "utils.h"
-// #include "window.h"
+#include "aff3.h"
+#include "audio.h"
+#include "consts.h"
+#include "gamepad.h"
+#include "graphics.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "synth.h"
+#include "types.h"
+#include "utils.h"
+#include "window.h"
 
+#include <Windows.h>
 #include <GL/gl.h>
 
 Window window;
@@ -28,8 +28,7 @@ Synth synth = {
     .phasor = {
         .phaseInterval = 261.63 / AUDIO_SAMPLE_RATE,
     },
-    .notes = {
-    },
+    .notes = {0},
     .oscillator = {
         .type = SineOscillator,
     },

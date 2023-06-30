@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include "types.h"
 
+// #define NOPRINT
+
 #ifdef NOPRINT
 #define print(format, ...) \
     do {                   \
@@ -12,20 +14,20 @@
     do {                     \
     } while (false)
 #else
-int printf(const char* restrict format, ...);
+int printf(const char* format, ...);
 
 // `print` prints to the standard output (terminal/command prompt).
 //
 // if `NOPRINT` is defined, this doesn't do anything and simply ignores passed
 // arguments.
-#define print(format, ...) printf(format __VA_OPT__(, __VA_ARGS__))
+#define print(format, ...) printf(format, __VA_ARGS__)
 
 // `print` prints to the standard output (terminal/command prompt) printing a
 // new line afterwards. `format` should be a string literal or constant.
 //
 // if `NOPRINT` is defined, this doesn't do anything and simply ignores passed
 // arguments.
-#define println(format, ...) printf("[%s:%d] ~> " format "\n", __FILE__, __LINE__ __VA_OPT__(, __VA_ARGS__)) // __println(__FILE__, __LINE__, format, __VA_ARGS__)
+#define println(format, ...) printf("[%s:%d] ~> " format "\n", __FILE__, __LINE__, __VA_ARGS__) // __println(__FILE__, __LINE__, format, __VA_ARGS__)
 #define __println(file, line, format, ...) 
 #endif
 
@@ -35,12 +37,12 @@ int printf(const char* restrict format, ...);
 // pointer might not be known at compile time.
 #define len(array, type) (sizeof(array) / sizeof(type))
 
-void copy(const void* restrict src, void* restrict dst, size_t size);
+void copy(const void*  src, void*  dst, size_t size);
 
 // `copyPad` copies as much from `src` into `dst` up to the size specified. If
-// `src` is smaller than size, the rest of `dst` is padded with null bytes 
+// `src` is smaller than size, the rest of `dst` is padded with null bytes
 // ('\0')
-void copyPad(const void* restrict src, void* restrict dst, size_t size);
+void copyPad(const void*  src, void*  dst, size_t size);
 
 // `allocate` easily allocates and initializes to zero a chunk of memory the
 // size of the specified `type`.

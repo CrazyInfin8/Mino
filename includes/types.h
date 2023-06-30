@@ -17,11 +17,16 @@ typedef unsigned long long int uint64;
 typedef unsigned int uint;
 typedef uint8 byte;
 typedef wchar_t rune;
+typedef size_t size;
 
 typedef float float32;
 typedef double float64;
 
 #define nil ((void*)0)
 
+#ifdef PLATFORM_Windows
+#define PACK_ENUM
+#else
 #define PACK_ENUM __attribute__ ((__packed__))
+#endif
 #endif // Types_H

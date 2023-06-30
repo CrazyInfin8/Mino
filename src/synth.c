@@ -24,9 +24,7 @@ void CreateSineOscillator(Oscillator* oscillator)  {
     *oscillator = (Oscillator){
         .type = SineOscillator,
         .options = {
-            .sine = {
-
-            }
+            .sine = {0}
         }
     };
 }

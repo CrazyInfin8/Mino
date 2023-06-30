@@ -15,3 +15,7 @@ notes.*
 *.d
 game
 game.*
+Debug
+Release
+ARM64
+x64

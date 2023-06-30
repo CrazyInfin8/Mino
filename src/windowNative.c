@@ -48,13 +48,18 @@ static void resetInputState(Window *window) {
 
 #if defined(PLATFORM_Windows)
 
+#pragma 
+
 #include <windows.h>
 #include <winuser.h>
 #include <GL/gl.h>
-#include <GL/wgl.h>
+// #include <GL/wgl.h>
 #include <wingdi.h>
 #include <xinput.h>
-
+#pragma comment(lib, "opengl32.lib")
+#pragma comment(lib, "gdi32.lib")
+#pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "Xinput.lib")
 struct WindowNative {
     HWND windowHandle;
     HGLRC glContext;

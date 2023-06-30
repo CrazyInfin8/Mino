@@ -5,10 +5,11 @@
 #include "types.h"
 #include "utils.h"
 
-static const Aff3 aff3 = (Aff3){.A = 1, .B = 0, .TX = 0, .C = 0, .D = 1, .TY = 0};
-
 extern inline Aff3 Aff3Identity() {
-    return aff3;
+    return (Aff3){
+        .A = 1, .B = 0, .TX = 0,
+        .C = 0, .D = 1, .TY = 0
+    };
 }
 
 Aff3 Aff3Concat(Aff3 this, Aff3 aff3) {
@@ -80,7 +81,7 @@ Vec2 Aff3TransformVec2(Aff3 this, Vec2 vec) {
 }
 
 #ifdef NOPRINT
-extern inline void Aff3Print(Aff3) {}
+extern inline void Aff3Print(Aff3 this) {}
 #else
 void Aff3Print(Aff3 this) {
     println(
