@@ -1,8 +1,29 @@
 #include "types.h"
 #include "utils.h"
+#include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
-#include <strings.h>
+
+#ifndef NOPRINT
+#include <stdio.h>
+
+int print(const char* restrict format, ...) {
+    va_list args;
+    va_start(args, format);
+    int count = vprintf(format, args);
+    va_end(args);
+    return count;
+}
+
+int println(const char* restrict format, ...) {
+    va_list args;
+    va_start(args, format);
+    int count = vprintf(format, args);
+    va_end(args);
+    count += putchar('\n');
+    return count;
+}
+#endif
 
 void copy(const void *restrict src, void *restrict dst, size_t size) {
     memcpy(dst, src, size);
@@ -53,3 +74,4 @@ bool hasPrefix(const char *text, const char *prefix) {
     if (textLen < prefixLen) return false;
     return strncmp(text, prefix, prefixLen) == 0;
 }
+

@@ -1,7 +1,10 @@
-#include <math.h>
+// Work in progress, in-game synthesizer.
+//
+// Not currently useable.
 
 #include "synth.h"
 #include "consts.h"
+#include <math.h>
 
 void WaveMultiply(float32 *wave, int length, float32 scale) {
     for (int i = 0; i < length; i++) {
@@ -20,18 +23,16 @@ void PhasorStream(Phasor *phasor, float32 *wave, int length) {
     }
 }
 
-void CreateSineOscillator(Oscillator* oscillator)  {
+void CreateSineOscillator(Oscillator *oscillator) {
     *oscillator = (Oscillator){
         .type = SineOscillator,
         .options = {
-            .sine = {
-
-            }
-        }
+            .sine = (SineOptions){.opt = nil},
+        },
     };
 }
 
-void OscillatorStream(Oscillator oscillator, float32* wave, int length) {
+void OscillatorStream(Oscillator oscillator, float32 *wave, int length) {
     switch (oscillator.type) {
         case SineOscillator: {
             for (int i = 0; i < length; i++) {
@@ -47,7 +48,7 @@ void OscillatorStream(Oscillator oscillator, float32* wave, int length) {
         } break;
 
         case SquareOscillator: {
-            for(int i = 0; i < length; i++) {
+            for (int i = 0; i < length; i++) {
                 wave[i] = (wave[i] > 0) ? 1 : -1;
             }
         }

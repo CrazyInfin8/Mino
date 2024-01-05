@@ -1,19 +1,18 @@
 #include <math.h>
 
-#include "../amalgamate.h"
-// #include "aff3.h"
-// #include "audio.h"
-// #include "consts.h"
-// #include "gamepad.h"
-// #include "graphics.h"
-// #include "keyboard.h"
-// #include "mouse.h"
-// #include "synth.h"
-// #include "types.h"
-// #include "utils.h"
-// #include "window.h"
+#include "aff3.h"
+#include "audio.h"
+#include "consts.h"
+#include "gamepad.h"
+#include "graphics.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "synth.h"
+#include "types.h"
+#include "utils.h"
+#include "window.h"
 
-#include <GL/gl.h>
+// #include <GL/gl.h>
 
 Window window;
 Audio audio;
@@ -28,8 +27,7 @@ Synth synth = {
     .phasor = {
         .phaseInterval = 261.63 / AUDIO_SAMPLE_RATE,
     },
-    .notes = {
-    },
+    .notes = {0},
     .oscillator = {
         .type = SineOscillator,
     },
@@ -103,19 +101,19 @@ int main(void) {
         }
 
         GraphicsMakeCurrent(&window);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glBegin(GL_TRIANGLES);
-        {
-            glColor4ub(0xFF, 0x00, 0x00, 0xFF);
-            glVertex3f(0, 1, 0);
+        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // glBegin(GL_TRIANGLES);
+        // {
+        //     glColor4ub(0xFF, 0x00, 0x00, 0xFF);
+        //     glVertex3f(0, 1, 0);
 
-            glColor4ub(0x00, 0xFF, 0x00, 0xFF);
-            glVertex3f(1, -1, 0);
+        //     glColor4ub(0x00, 0xFF, 0x00, 0xFF);
+        //     glVertex3f(1, -1, 0);
 
-            glColor4ub(0x00, 0x00, 0xFF, 0xFF);
-            glVertex3f(-1, -1, 0);
-        }
-        glEnd();
+        //     glColor4ub(0x00, 0x00, 0xFF, 0xFF);
+        //     glVertex3f(-1, -1, 0);
+        // }
+        // glEnd();
 
         int64 now = WindowTime();
         if (now - begin < 1000 / 60 && 1000 / 60 - (now - begin) > 0) {

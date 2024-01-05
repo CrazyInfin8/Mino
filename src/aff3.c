@@ -5,10 +5,8 @@
 #include "types.h"
 #include "utils.h"
 
-static const Aff3 aff3 = (Aff3){.A = 1, .B = 0, .TX = 0, .C = 0, .D = 1, .TY = 0};
-
 extern inline Aff3 Aff3Identity() {
-    return aff3;
+    return (Aff3){.A = 1, .B = 0, .TX = 0, .C = 0, .D = 1, .TY = 0};
 }
 
 Aff3 Aff3Concat(Aff3 this, Aff3 aff3) {

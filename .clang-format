@@ -7,4 +7,10 @@ AlignAfterOpenBracket: DontAlign
 SortIncludes: false
 AllowShortCaseLabelsOnASingleLine: true
 ---
-
+Language: ObjC
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 0
+AlignAfterOpenBracket: DontAlign
+SortIncludes: false
+AllowShortCaseLabelsOnASingleLine: true
