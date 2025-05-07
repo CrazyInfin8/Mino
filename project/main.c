@@ -1,17 +1,17 @@
 #include <math.h>
 
-#include "../amalgamate.h"
-// #include "aff3.h"
-// #include "audio.h"
-// #include "consts.h"
-// #include "gamepad.h"
-// #include "graphics.h"
-// #include "keyboard.h"
-// #include "mouse.h"
-// #include "synth.h"
-// #include "types.h"
-// #include "utils.h"
-// #include "window.h"
+// #include "../amalgamate.h"
+#include "aff3.h"
+#include "audio.h"
+#include "consts.h"
+#include "gamepad.h"
+#include "graphics.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "synth.h"
+#include "types.h"
+#include "utils.h"
+#include "window.h"
 
 #include <GL/gl.h>
 
